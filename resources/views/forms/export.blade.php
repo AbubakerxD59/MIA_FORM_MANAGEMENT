@@ -124,24 +124,20 @@
                 <img src="{{ public_path('images/monogram.jpeg') }}" alt="Logo">
             </div>
             <div class="info-cell">
-                <div class="info-label">Client Name</div>
-                <div class="info-value">{{ $form->client_name }}</div>
-            </div>
-            <div class="info-cell">
                 <div class="info-label">Project Name</div>
                 <div class="info-value">{{ $form->project_name }}</div>
             </div>
             <div class="info-cell">
-                <div class="info-label">Date</div>
-                <div class="info-value"></div>
-            </div>
-            <div class="right-info">
                 <div class="info-label">Item</div>
-                <div class="info-label" style="margin-top: 20px;">T.Qty</div>
+                <div class="info-value">{{ $form->item_name ?? '' }}</div>
             </div>
-            <div class="right-info">
-                <div class="info-label">new field in forms_table</div>
-                <div class="info-value" style="margin-top: 20px;">{{ $sumOfTotal }}</div>
+            <div class="info-cell">
+                <div class="info-label">T.Qty</div>
+                <div class="info-value">{{ $sumOfTotal }}</div>
+            </div>
+            <div class="info-cell">
+                <div class="info-label">Date</div>
+                <div class="info-value">{{ $formattedDate }}</div>
             </div>
         </div>
 
@@ -177,20 +173,6 @@
                     @endforelse
                 </tbody>
             </table>
-        </div>
-
-        <!-- Footer Section (Rows 10-12) -->
-        <div class="footer-section">
-            <div class="footer-row">MIA CONSTRUCTION</div>
-            <div class="footer-text">Consultant - Designer - Estimator - Contractor</div>
-            <div class="footer-text">3218600259</div>
-        </div>
-
-        <!-- Footer Section (Rows 10-12) -->
-        <div class="footer-section">
-            <div class="footer-row">MIA CONSTRUCTION</div>
-            <div class="footer-text">Consultant - Designer - Estimator - Contractor</div>
-            <div class="footer-text">3218600259</div>
         </div>
     </div>
 </body>

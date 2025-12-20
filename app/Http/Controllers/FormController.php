@@ -400,22 +400,7 @@ class FormController extends Controller
         // Helper function to format date with ordinal suffix
         $formatDateWithOrdinal = function ($date) {
             if (!$date) return '';
-
-            $day = $date->format('j');
-            $month = $date->format('M');
-            $year = $date->format('Y');
-
-            // Add ordinal suffix
-            $suffix = 'th';
-            if ($day % 10 == 1 && $day % 100 != 11) {
-                $suffix = 'st';
-            } elseif ($day % 10 == 2 && $day % 100 != 12) {
-                $suffix = 'nd';
-            } elseif ($day % 10 == 3 && $day % 100 != 13) {
-                $suffix = 'rd';
-            }
-
-            return $day . $suffix . ' ' . $month . ', ' . $year;
+            return $date->format('d/m/Y');
         };
 
         // Add logo image in A1-A3 (merged cells)
@@ -452,25 +437,23 @@ class FormController extends Controller
             $sheet->getRowDimension(3)->setRowHeight(20);
         }
 
-        // Header Section (Rows 1-3)
-        // Row 1
-        $sheet->setCellValue('B1', 'Client Name');
-        $sheet->setCellValue('C1', ucwords(strtolower($form->client_name)));
-        $sheet->setCellValue('F1', 'Item');
-        $sheet->setCellValue('G1', ucwords(strtolower($form->item_name)));
-
-        // Row 2
-        $sheet->setCellValue('B2', 'Project Name');
-        $sheet->setCellValue('C2', ucwords(strtolower($form->project_name)));
-        $sheet->setCellValue('F2', 'T.QTY');
-
-        // Calculate sum of total
+        // Calculate sum of total before using it
         $sumOfTotal = $form->fields->sum('product') ?? 0;
-        $sheet->setCellValue('G2', $sumOfTotal);
 
-        // Row 3
-        $sheet->setCellValue('B3', 'Date');
-        $sheet->setCellValue('C3', $formatDateWithOrdinal($form->created_at));
+        // Header Section (Rows 1-3) - Matching the image layout
+        // Row 1: Project Name
+        $sheet->setCellValue('B1', 'Project Name');
+        $sheet->setCellValue('C1', ucwords(strtolower($form->project_name)));
+
+        // Row 2: Item
+        $sheet->setCellValue('B2', 'Item');
+        $sheet->setCellValue('C2', ucwords(strtolower($form->item_name ?? '')));
+
+        // Row 3: T.QTY and Date
+        $sheet->setCellValue('B3', 'T.QTY');
+        $sheet->setCellValue('C3', $sumOfTotal);
+        $sheet->setCellValue('F3', 'Date');
+        $sheet->setCellValue('G3', $formatDateWithOrdinal($form->created_at));
 
         // Style header rows - labels (bold, left-aligned)
         $headerLabelStyle = [
@@ -484,19 +467,20 @@ class FormController extends Controller
         $headerValueStyle = [
             'font' => ['bold' => false, 'size' => 12, 'color' => ['rgb' => '000000']],
             'alignment' => [
-                'horizontal' => Alignment::HORIZONTAL_RIGHT,
+                'horizontal' => Alignment::HORIZONTAL_LEFT,
                 'vertical' => Alignment::VERTICAL_CENTER
             ]
         ];
-        // Apply bold style to labels: Client Name, Project Name, Date, Item, T.Qty
-        $sheet->getStyle('B1')->applyFromArray($headerLabelStyle); // Client Name
-        $sheet->getStyle('B2')->applyFromArray($headerLabelStyle); // Project Name
-        $sheet->getStyle('B3')->applyFromArray($headerLabelStyle); // Date
-        $sheet->getStyle('F1')->applyFromArray($headerLabelStyle); // Item
-        $sheet->getStyle('F2')->applyFromArray($headerLabelStyle); // T.QTY
+        // Apply bold style to labels: Project Name, Item, T.QTY, Date
+        $sheet->getStyle('B1')->applyFromArray($headerLabelStyle); // Project Name
+        $sheet->getStyle('B2')->applyFromArray($headerLabelStyle); // Item
+        $sheet->getStyle('B3')->applyFromArray($headerLabelStyle); // T.QTY
+        $sheet->getStyle('E3')->applyFromArray($headerLabelStyle); // Date
         // Apply value style to actual values
-        $sheet->getStyle('C1:C3')->applyFromArray($headerValueStyle);
-        $sheet->getStyle('G1:G2')->applyFromArray($headerValueStyle);
+        $sheet->getStyle('C1')->applyFromArray($headerValueStyle); // Project Name value
+        $sheet->getStyle('C2')->applyFromArray($headerValueStyle); // Item value
+        $sheet->getStyle('C3')->applyFromArray($headerValueStyle); // T.QTY value
+        $sheet->getStyle('F3')->applyFromArray($headerValueStyle); // Date value
 
         // Add spacing row
         $sheet->setCellValue('A4', '');
@@ -567,47 +551,94 @@ class FormController extends Controller
             $row++;
         }
 
-        // Footer removed from sheet - will be set as page footer instead
+        // Add spacing row before footer
+        $row++;
+
+        // Add footer section with monogram on the left
+        // Footer Row 1: MIA CONSTRUCTION (centered, bold)
+        $sheet->mergeCells('A' . $row . ':G' . $row);
+        $sheet->setCellValue('A' . $row, 'MIA CONSTRUCTION');
+        $sheet->getStyle('A' . $row)->applyFromArray([
+            'font' => ['bold' => true, 'size' => 12, 'color' => ['rgb' => '000000']],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                'vertical' => Alignment::VERTICAL_CENTER
+            ]
+        ]);
+        $sheet->getRowDimension($row)->setRowHeight(20);
+        $row++;
+
+        // Footer Row 2: Monogram on left, text on right
+        if (file_exists($logoPath)) {
+            $drawingFooter = new Drawing();
+            $drawingFooter->setName('Monogram Footer');
+            $drawingFooter->setDescription('Monogram Footer');
+            $drawingFooter->setPath($logoPath);
+            $drawingFooter->setHeight(30);
+            $drawingFooter->setCoordinates('A' . $row);
+            $drawingFooter->setWorksheet($sheet);
+        }
+        $sheet->setCellValue('B' . $row, 'Consultant - Designer - Estimator - Contractor');
+        $sheet->getStyle('B' . $row)->applyFromArray([
+            'font' => ['size' => 10, 'color' => ['rgb' => '000000']],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_LEFT,
+                'vertical' => Alignment::VERTICAL_CENTER
+            ]
+        ]);
+        $sheet->getRowDimension($row)->setRowHeight(30);
+        $row++;
+
+        // Footer Row 3: Phone number (centered)
+        $sheet->mergeCells('A' . $row . ':G' . $row);
+        $sheet->setCellValue('A' . $row, '- 03218600259 -');
+        $sheet->getStyle('A' . $row)->applyFromArray([
+            'font' => ['size' => 10, 'color' => ['rgb' => '000000']],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                'vertical' => Alignment::VERTICAL_CENTER
+            ]
+        ]);
+        $sheet->getRowDimension($row)->setRowHeight(20);
 
         // Set column widths optimized for A4 paper
         // Columns A-G are used for both header and table sections
-        // Header: A=Logo, B=Labels, C=Values, E=Item/T.QTY labels, F=Item/T.QTY values
+        // Header: A=Logo, B=Labels, C=Values, F=Date label, G=Date value
         // Table: A=S.NO, B=DESCRIPTION, C=QTY, D=L, E=W, F=H, G=TOTAL
-        $sheet->getColumnDimension('A')->setWidth(12);  // Logo / S. NO (increased for monogram)
-        $sheet->getColumnDimension('B')->setWidth(25);  // Labels / DESCRIPTION (increased for better visibility)
-        $sheet->getColumnDimension('C')->setWidth(12);  // Values / QTY (increased for better visibility)
-        $sheet->getColumnDimension('D')->setWidth(5);   // Empty / L (reduced as much as possible)
-        $sheet->getColumnDimension('E')->setWidth(5);   // Item, T.QTY / W (reduced as much as possible)
-        $sheet->getColumnDimension('F')->setWidth(12);  // Item value, T.QTY / H (increased for better visibility)
-        $sheet->getColumnDimension('G')->setWidth(12);  // Empty / TOTAL (increased for better visibility)
+        // Width conversion: 1 character unit ≈ 7 pixels
+        // 106px = 11 character units, 58px = 8.3 character units
+        $sheet->getColumnDimension('A')->setWidth(11.5);  // Logo / S. NO (106px)
+        $sheet->getColumnDimension('B')->setWidth(31);    // Labels / DESCRIPTION
+        $sheet->getColumnDimension('C')->setWidth(7);   // Values / QTY (58px)
+        $sheet->getColumnDimension('D')->setWidth(11.5);  // L (106px)
+        $sheet->getColumnDimension('E')->setWidth(11.5);  // W (106px)
+        $sheet->getColumnDimension('F')->setWidth(11.5);  // Date label / H (106px)
+        $sheet->getColumnDimension('G')->setWidth(11.5);  // Date value / TOTAL (106px)
 
-        // Set page setup for A4 paper
-        $sheet->getPageSetup()->setPaperSize(PageSetup::PAPERSIZE_A4);
+        // Set page setup for Letter paper (8.5" x 11")
+        $sheet->getPageSetup()->setPaperSize(PageSetup::PAPERSIZE_LETTER);
         $sheet->getPageSetup()->setOrientation(PageSetup::ORIENTATION_PORTRAIT);
         $sheet->getPageSetup()->setFitToWidth(1);
         $sheet->getPageSetup()->setFitToHeight(0);
+        $sheet->getPageSetup()->setHorizontalCentered(false);
+        $sheet->getPageSetup()->setVerticalCentered(false);
 
-        // Set print area to include all data (footer rows removed, using page footer instead)
-        $lastRow = $row - 1; // Last data row
+        // Set print area to include all data including footer
+        $lastRow = $row; // Last row including footer
         $sheet->getPageSetup()->setPrintArea('A1:G' . $lastRow);
 
         // Set rows to repeat at top (optional - for multi-page printing)
         // $sheet->getPageSetup()->setRowsToRepeatAtTopByStartAndEnd(1, 5);
 
-        // Set margins for better printing (in inches)
+        // Set margins optimized for Letter paper (in inches)
+        // Letter: 8.5" wide, 11" tall
+        // Standard margins: 0.5" on all sides for better printability
         $sheet->getPageMargins()->setTop(0.5);
         $sheet->getPageMargins()->setRight(0.5);
-        $sheet->getPageMargins()->setBottom(1.0); // Space for page footer
+        $sheet->getPageMargins()->setBottom(0.5);
         $sheet->getPageMargins()->setLeft(0.5);
-
-        // Set page footer that appears on every printed page
-        // Format: &L = Left, &C = Center, &R = Right, &B = Bold, &12 = Font size 12, &10 = Font size 10
-        // Simple footer matching the image: MIA CONSTRUCTION (bold), Consultant line, Phone number
-        $footerText = "&C&B&12 MIA CONSTRUCTION\n";
-        $footerText .= "&10 Consultant - Designer - Estimator - Contractor\n";
-        $footerText .= "&10 - 03218600259 -";
-        $sheet->getHeaderFooter()->setOddFooter($footerText);
-        $sheet->getHeaderFooter()->setEvenFooter($footerText); // For even pages
+        $sheet->getPageMargins()->setHeader(0.3);
+        $sheet->getPageMargins()->setFooter(0.3);
 
         // Create writer
         $writer = new Xlsx($spreadsheet);
