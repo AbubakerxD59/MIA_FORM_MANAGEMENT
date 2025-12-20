@@ -404,13 +404,14 @@ class FormController extends Controller
         };
 
         // Add logo image in A1-A3 (merged cells)
-        // Image is located outside root folder at images/monogram.jpeg on server
+        // Image is located at images/monogram.jpeg
         // Try multiple possible paths
         $logoPath = null;
         $possiblePaths = [
-            base_path('../images/monogram.jpeg'),  // One level up from Laravel root
+            public_path('images/monogram.jpeg'),    // In public/images directory
+            base_path('../images/monogram.jpeg'),   // One level up from Laravel root
             base_path('../../images/monogram.jpeg'), // Two levels up
-            '/images/monogram.jpeg',  // Absolute path on server
+            '/images/monogram.jpeg',                 // Absolute path on server
             public_path('../images/monogram.jpeg'), // One level up from public
         ];
 
@@ -422,19 +423,39 @@ class FormController extends Controller
         }
 
         if (file_exists($logoPath)) {
-            $drawing = new Drawing();
-            $drawing->setName('Monogram');
-            $drawing->setDescription('Monogram');
-            $drawing->setPath($logoPath);
-            $drawing->setHeight(60);
-            $drawing->setCoordinates('A1');
-            $drawing->setWorksheet($sheet);
-
-            // Merge A1:A3 for logo
+            // Merge A1:A3 for logo first
             $sheet->mergeCells('A1:A3');
             $sheet->getRowDimension(1)->setRowHeight(20);
             $sheet->getRowDimension(2)->setRowHeight(20);
             $sheet->getRowDimension(3)->setRowHeight(20);
+
+            // Center align the merged cell (this helps with image positioning)
+            $sheet->getStyle('A1:A3')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle('A1:A3')->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
+
+            // Add monogram image centered in the merged cell
+            // Calculate column width in pixels (approximately 7 pixels per character unit)
+            $columnWidth = $sheet->getColumnDimension('A')->getWidth() * 7; // Convert to pixels
+            $imageHeight = 70;
+            $imageWidth = $imageHeight; // Assuming square image, adjust if needed
+
+            // Calculate offsets to center the image (in pixels)
+            // OffsetX: (column width - image width) / 2
+            // OffsetY: (row height - image height) / 2
+            $totalRowHeight = 60; // 3 rows * 20 pixels each
+            $offsetX = ($columnWidth - $imageWidth) / 2;
+            $offsetY = ($totalRowHeight - $imageHeight) / 2;
+
+            $drawing = new Drawing();
+            $drawing->setName('Monogram');
+            $drawing->setDescription('Monogram');
+            $drawing->setPath($logoPath);
+            $drawing->setHeight($imageHeight);
+            $drawing->setWidth($imageWidth);
+            $drawing->setCoordinates('A1');
+            $drawing->setOffsetX(max(0, $offsetX)); // Center horizontally, ensure non-negative
+            $drawing->setOffsetY(max(0, $offsetY)); // Center vertically, ensure non-negative
+            $drawing->setWorksheet($sheet);
         }
 
         // Calculate sum of total before using it
@@ -551,94 +572,47 @@ class FormController extends Controller
             $row++;
         }
 
-        // Add spacing row before footer
-        $row++;
-
-        // Add footer section with monogram on the left
-        // Footer Row 1: MIA CONSTRUCTION (centered, bold)
-        $sheet->mergeCells('A' . $row . ':G' . $row);
-        $sheet->setCellValue('A' . $row, 'MIA CONSTRUCTION');
-        $sheet->getStyle('A' . $row)->applyFromArray([
-            'font' => ['bold' => true, 'size' => 12, 'color' => ['rgb' => '000000']],
-            'alignment' => [
-                'horizontal' => Alignment::HORIZONTAL_CENTER,
-                'vertical' => Alignment::VERTICAL_CENTER
-            ]
-        ]);
-        $sheet->getRowDimension($row)->setRowHeight(20);
-        $row++;
-
-        // Footer Row 2: Monogram on left, text on right
-        if (file_exists($logoPath)) {
-            $drawingFooter = new Drawing();
-            $drawingFooter->setName('Monogram Footer');
-            $drawingFooter->setDescription('Monogram Footer');
-            $drawingFooter->setPath($logoPath);
-            $drawingFooter->setHeight(30);
-            $drawingFooter->setCoordinates('A' . $row);
-            $drawingFooter->setWorksheet($sheet);
-        }
-        $sheet->setCellValue('B' . $row, 'Consultant - Designer - Estimator - Contractor');
-        $sheet->getStyle('B' . $row)->applyFromArray([
-            'font' => ['size' => 10, 'color' => ['rgb' => '000000']],
-            'alignment' => [
-                'horizontal' => Alignment::HORIZONTAL_LEFT,
-                'vertical' => Alignment::VERTICAL_CENTER
-            ]
-        ]);
-        $sheet->getRowDimension($row)->setRowHeight(30);
-        $row++;
-
-        // Footer Row 3: Phone number (centered)
-        $sheet->mergeCells('A' . $row . ':G' . $row);
-        $sheet->setCellValue('A' . $row, '- 03218600259 -');
-        $sheet->getStyle('A' . $row)->applyFromArray([
-            'font' => ['size' => 10, 'color' => ['rgb' => '000000']],
-            'alignment' => [
-                'horizontal' => Alignment::HORIZONTAL_CENTER,
-                'vertical' => Alignment::VERTICAL_CENTER
-            ]
-        ]);
-        $sheet->getRowDimension($row)->setRowHeight(20);
+        // Footer removed from sheet - will be set as page footer instead
 
         // Set column widths optimized for A4 paper
         // Columns A-G are used for both header and table sections
-        // Header: A=Logo, B=Labels, C=Values, F=Date label, G=Date value
+        // Header: A=Logo, B=Labels, C=Values, E=Item/T.QTY labels, F=Item/T.QTY values
         // Table: A=S.NO, B=DESCRIPTION, C=QTY, D=L, E=W, F=H, G=TOTAL
-        // Width conversion: 1 character unit ≈ 7 pixels
-        // 106px = 11 character units, 58px = 8.3 character units
-        $sheet->getColumnDimension('A')->setWidth(11.5);  // Logo / S. NO (106px)
-        $sheet->getColumnDimension('B')->setWidth(31);    // Labels / DESCRIPTION
-        $sheet->getColumnDimension('C')->setWidth(7);   // Values / QTY (58px)
-        $sheet->getColumnDimension('D')->setWidth(11.5);  // L (106px)
-        $sheet->getColumnDimension('E')->setWidth(11.5);  // W (106px)
-        $sheet->getColumnDimension('F')->setWidth(11.5);  // Date label / H (106px)
-        $sheet->getColumnDimension('G')->setWidth(11.5);  // Date value / TOTAL (106px)
+        $sheet->getColumnDimension('A')->setWidth(11.5);  // Logo / S. NO (increased for monogram)
+        $sheet->getColumnDimension('B')->setWidth(31);  // Labels / DESCRIPTION (increased for better visibility)
+        $sheet->getColumnDimension('C')->setWidth(7);  // Values / QTY (increased for better visibility)
+        $sheet->getColumnDimension('D')->setWidth(11.5);   // Empty / L (reduced as much as possible)
+        $sheet->getColumnDimension('E')->setWidth(11.5);   // Item, T.QTY / W (reduced as much as possible)
+        $sheet->getColumnDimension('F')->setWidth(11.5);  // Item value, T.QTY / H (increased for better visibility)
+        $sheet->getColumnDimension('G')->setWidth(11.5);  // Empty / TOTAL (increased for better visibility)
 
-        // Set page setup for Letter paper (8.5" x 11")
-        $sheet->getPageSetup()->setPaperSize(PageSetup::PAPERSIZE_LETTER);
+        // Set page setup for A4 paper
+        $sheet->getPageSetup()->setPaperSize(PageSetup::PAPERSIZE_A4);
         $sheet->getPageSetup()->setOrientation(PageSetup::ORIENTATION_PORTRAIT);
         $sheet->getPageSetup()->setFitToWidth(1);
         $sheet->getPageSetup()->setFitToHeight(0);
-        $sheet->getPageSetup()->setHorizontalCentered(false);
-        $sheet->getPageSetup()->setVerticalCentered(false);
 
-        // Set print area to include all data including footer
-        $lastRow = $row; // Last row including footer
+        // Set print area to include all data (footer rows removed, using page footer instead)
+        $lastRow = $row - 1; // Last data row
         $sheet->getPageSetup()->setPrintArea('A1:G' . $lastRow);
 
         // Set rows to repeat at top (optional - for multi-page printing)
         // $sheet->getPageSetup()->setRowsToRepeatAtTopByStartAndEnd(1, 5);
 
-        // Set margins optimized for Letter paper (in inches)
-        // Letter: 8.5" wide, 11" tall
-        // Standard margins: 0.5" on all sides for better printability
+        // Set margins for better printing (in inches)
         $sheet->getPageMargins()->setTop(0.5);
         $sheet->getPageMargins()->setRight(0.5);
-        $sheet->getPageMargins()->setBottom(0.5);
+        $sheet->getPageMargins()->setBottom(1.0); // Space for page footer
         $sheet->getPageMargins()->setLeft(0.5);
-        $sheet->getPageMargins()->setHeader(0.3);
-        $sheet->getPageMargins()->setFooter(0.3);
+
+        // Set page footer that appears on every printed page
+        // Format: &L = Left, &C = Center, &R = Right, &B = Bold, &12 = Font size 12, &10 = Font size 10
+        // All three lines should be centered
+        $footerText = "&C&12&B MIA CONSTRUCTION\n";
+        $footerText .= "\n&C&10 Consultant - Designer - Estimator - Contractor\n";
+        $footerText .= "&C&10 - 03218600259 -";
+        $sheet->getHeaderFooter()->setOddFooter($footerText);
+        $sheet->getHeaderFooter()->setEvenFooter($footerText); // For even pages
 
         // Create writer
         $writer = new Xlsx($spreadsheet);
