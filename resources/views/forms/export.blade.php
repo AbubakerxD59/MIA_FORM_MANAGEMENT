@@ -133,7 +133,7 @@
             </div>
             <div class="info-cell">
                 <div class="info-label">Date</div>
-                <div class="info-value">{{ $formattedDate }}</div>
+                <div class="info-value"></div>
             </div>
             <div class="right-info">
                 <div class="info-label">Item</div>
@@ -177,6 +177,13 @@
                     @endforelse
                 </tbody>
             </table>
+        </div>
+
+        <!-- Footer Section (Rows 10-12) -->
+        <div class="footer-section">
+            <div class="footer-row">MIA CONSTRUCTION</div>
+            <div class="footer-text">Consultant - Designer - Estimator - Contractor</div>
+            <div class="footer-text">3218600259</div>
         </div>
 
         <!-- Footer Section (Rows 10-12) -->

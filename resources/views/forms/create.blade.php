@@ -258,10 +258,10 @@
 
         function calculateProduct(input) {
             const row = input.closest('tr');
-            const quantity = parseFloat(row.querySelector('.field-quantity').value) || 0;
-            const length = parseFloat(row.querySelector('.field-length').value) || 0;
-            const width = parseFloat(row.querySelector('.field-width').value) || 0;
-            const height = parseFloat(row.querySelector('.field-height').value) || 0;
+            const quantity = parseFloat(row.querySelector('.field-quantity').value) || 1;
+            const length = parseFloat(row.querySelector('.field-length').value) || 1;
+            const width = parseFloat(row.querySelector('.field-width').value) || 1;
+            const height = parseFloat(row.querySelector('.field-height').value) || 1;
             const productInput = row.querySelector('.field-product');
 
             // Calculate product only if all values are greater than 0

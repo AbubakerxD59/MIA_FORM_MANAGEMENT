@@ -265,10 +265,10 @@
 
         function calculateProduct(input) {
             const row = input.closest('tr');
-            const quantity = parseFloat(row.querySelector('.field-quantity').value) || 0;
-            const length = parseFloat(row.querySelector('.field-length').value) || 0;
-            const width = parseFloat(row.querySelector('.field-width').value) || 0;
-            const height = parseFloat(row.querySelector('.field-height').value) || 0;
+            const quantity = parseFloat(row.querySelector('.field-quantity').value) || 1;
+            const length = parseFloat(row.querySelector('.field-length').value) || 1;
+            const width = parseFloat(row.querySelector('.field-width').value) || 1;
+            const height = parseFloat(row.querySelector('.field-height').value) || 1;
             const productInput = row.querySelector('.field-product');
             
             // Calculate product only if all values are greater than 0
@@ -427,22 +427,6 @@
                     e.target.classList.contains('field-height')) {
                     calculateProduct(e.target);
                 }
-            }
-        });
-
-        // Filter non-numeric characters on input (safety measure)
-        document.addEventListener('input', function(e) {
-            if (e.target.type === 'number' && e.target.readOnly === false) {
-                // Remove any non-numeric characters except decimal point
-                let value = e.target.value;
-                // Remove all non-numeric characters except decimal point
-                value = value.replace(/[^0-9.]/g, '');
-                // Ensure only one decimal point
-                const parts = value.split('.');
-                if (parts.length > 2) {
-                    value = parts[0] + '.' + parts.slice(1).join('');
-                }
-                e.target.value = value;
             }
         });
 
