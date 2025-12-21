@@ -8,6 +8,10 @@ Route::get('/', function () {
 });
 
 Route::resource('forms', FormController::class);
-Route::get('forms/{form}/export', [FormController::class, 'export'])->name('forms.export');
 Route::get('forms-deleted', [FormController::class, 'deleted'])->name('forms.deleted');
 Route::post('forms/{id}/restore', [FormController::class, 'restore'])->name('forms.restore');
+Route::get('api/client-names', [FormController::class, 'getClientNames'])->name('api.client-names');
+Route::get('api/forms/{form}/fields', [FormController::class, 'getFormFields'])->name('api.form-fields');
+Route::get('api/forms/sidebar-items', [FormController::class, 'getSidebarItems'])->name('api.sidebar-items');
+Route::get('forms/project/edit', [FormController::class, 'edit'])->name('forms.edit-by-project');
+Route::get('forms/project/export', [FormController::class, 'exportByProject'])->name('forms.export-by-project');
