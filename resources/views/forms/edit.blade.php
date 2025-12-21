@@ -260,15 +260,35 @@
                                 <div class="mb-4">
                                     <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Fields</h2>
 
-                                    <!-- Item Name Field -->
+                                    <!-- Item Name and Unit Fields -->
                                     <div id="itemNameField" class="mb-6">
-                                        <label for="fields_item_name"
-                                            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                            Item Name
-                                        </label>
-                                        <input type="text" id="fields_item_name" name="fields_item_name"
-                                            placeholder="Enter item name"
-                                            class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
+                                        <div class="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label for="fields_item_name"
+                                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                    Item Name
+                                                </label>
+                                                <input type="text" id="fields_item_name" name="fields_item_name"
+                                                    placeholder="Enter item name"
+                                                    class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
+                                            </div>
+                                            <div>
+                                                <label for="fields_unit"
+                                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                    Unit
+                                                </label>
+                                                <select id="fields_unit" name="fields_unit"
+                                                    class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
+                                                    <option value="">Select Unit</option>
+                                                    <option value="CFT">CFT</option>
+                                                    <option value="SFT">SFT</option>
+                                                    <option value="RFT">RFT</option>
+                                                    <option value="CUM">CUM</option>
+                                                    <option value="SQM">SQM</option>
+                                                    <option value="RM">RM</option>
+                                                </select>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -285,7 +305,7 @@
                                                     Description</th>
                                                 <th
                                                     class="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider w-32">
-                                                    Quantity</th>
+                                                    Number</th>
                                                 <th
                                                     class="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider w-32">
                                                     Length</th>
@@ -297,7 +317,7 @@
                                                     Height</th>
                                                 <th
                                                     class="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider w-32 whitespace-nowrap">
-                                                    Product Total</th>
+                                                    T  QTY</th>
                                                 <th
                                                     class="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider w-20">
                                                     Action</th>
@@ -400,9 +420,10 @@
                     $('#updateFormBtn').removeClass('hidden');
                     $('#updateFormBtn').text('Update Form');
 
-                    // Show and populate item name field for existing items
+                    // Show and populate item name and unit fields for existing items
                     $('#itemNameField').removeClass('hidden');
                     $('#fields_item_name').val(response.item_name || '');
+                    $('#fields_unit').val(response.unit || '');
 
                     // Update form for editing
                     $('#formForm').attr('action', `/forms/${formId}`);
@@ -547,9 +568,10 @@
             $('#item_name_input').val('');
             $('#is_new_item').val('1');
 
-            // Show item name field for new items
+            // Show item name and unit fields for new items
             $('#itemNameField').removeClass('hidden');
             $('#fields_item_name').val('');
+            $('#fields_unit').val('');
 
             // Generate 30 empty rows
             const emptyFields = [];
@@ -598,9 +620,11 @@
             formData.append('client_name', $('#client_name').val());
             formData.append('project_name', $('#project_name').val());
 
-            // Get item name from the visible field (works for both new and existing items)
+            // Get item name and unit from the visible fields (works for both new and existing items)
             const itemName = $('#fields_item_name').val();
+            const unit = $('#fields_unit').val();
             formData.append('item_name', itemName);
+            formData.append('unit', unit);
 
             // Collect fields data
             $('#fieldsTableBody tr').each(function(index) {

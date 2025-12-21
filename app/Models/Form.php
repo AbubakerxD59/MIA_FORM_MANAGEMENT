@@ -17,6 +17,7 @@ class Form extends Model
      */
     protected $fillable = [
         'item_name',
+        'unit',
         'client_name',
         'project_name',
     ];

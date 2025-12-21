@@ -192,6 +192,7 @@ class FormController extends Controller
         return response()->json([
             'form_id' => $form->id,
             'item_name' => $form->item_name,
+            'unit' => $form->unit,
             'fields' => $fieldsData
         ]);
     }
@@ -235,6 +236,7 @@ class FormController extends Controller
         // Basic validation only (client-side validation handles the rest)
         $validated = $request->validate([
             'item_name' => 'nullable|string|max:255',
+            'unit' => 'nullable|string|max:10|in:CFT,SFT,RFT,CUM,SQM,RM',
             'client_name' => 'required|string|max:255',
             'project_name' => 'required|string|max:255',
             'fields' => 'nullable|array',
@@ -250,6 +252,7 @@ class FormController extends Controller
         try {
             $form = Form::create([
                 'item_name' => $validated['item_name'] ?? null,
+                'unit' => $validated['unit'] ?? null,
                 'client_name' => $validated['client_name'],
                 'project_name' => $validated['project_name'],
             ]);
@@ -355,6 +358,7 @@ class FormController extends Controller
         // Basic validation only (client-side validation handles the rest)
         $validated = $request->validate([
             'item_name' => 'nullable|string|max:255',
+            'unit' => 'nullable|string|max:10|in:CFT,SFT,RFT,CUM,SQM,RM',
             'client_name' => 'required|string|max:255',
             'project_name' => 'required|string|max:255',
             'fields' => 'nullable|array',
@@ -371,6 +375,7 @@ class FormController extends Controller
         try {
             $form->update([
                 'item_name' => $validated['item_name'] ?? null,
+                'unit' => $validated['unit'] ?? null,
                 'client_name' => $validated['client_name'],
                 'project_name' => $validated['project_name'],
             ]);
@@ -606,11 +611,13 @@ class FormController extends Controller
 
         // Create a sheet for each form
         foreach ($forms as $index => $form) {
-            $sheet = new \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet($spreadsheet, $form->item_name ?? 'Sheet' . ($index + 1));
-            $spreadsheet->addSheet($sheet, $index);
+            // Sanitize sheet title - Excel doesn't allow: : \ / ? * [ ]
+            $rawTitle = $form->item_name ?? 'Sheet' . ($index + 1);
+            $sanitizedTitle = preg_replace('/[:\/\\?*\[\]]/', '-', $rawTitle);
+            $sheetTitle = substr($sanitizedTitle, 0, 31);
 
-            // Set sheet title (Excel sheet names have a 31 character limit)
-            $sheetTitle = substr($form->item_name ?? 'Sheet' . ($index + 1), 0, 31);
+            $sheet = new \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet($spreadsheet, $sheetTitle);
+            $spreadsheet->addSheet($sheet, $index);
             $sheet->setTitle($sheetTitle);
 
             // Add logo image in A1-A3 (merged cells)
@@ -654,10 +661,9 @@ class FormController extends Controller
 
             $sheet->setCellValue('B3', 'T.QTY');
             $sheet->setCellValue('C3', (int)$sumOfTotal);
+            $sheet->setCellValue('D3', $form->unit ?? 'CFT');
             // Format T.QTY as integer (no decimals)
             $sheet->getStyle('C3')->getNumberFormat()->setFormatCode('0');
-            $sheet->setCellValue('F3', 'Date');
-            $sheet->setCellValue('G3', $formatDateWithOrdinal($form->created_at));
 
             // Style header rows
             $headerLabelStyle = [
@@ -683,9 +689,12 @@ class FormController extends Controller
             $sheet->getStyle('C2')->applyFromArray($headerValueStyle);
             $sheet->getStyle('C3')->applyFromArray($headerValueStyle);
             $sheet->getStyle('G3')->applyFromArray($headerValueStyle);
+            // Make unit (D3) bold
+            $sheet->getStyle('D3')->applyFromArray($headerLabelStyle);
 
             // Add spacing row
             $sheet->setCellValue('A4', '');
+            $sheet->getRowDimension(4)->setRowHeight(5);
 
             // Fields Table Header (Row 5)
             $sheet->setCellValue('A5', 'S. NO');
