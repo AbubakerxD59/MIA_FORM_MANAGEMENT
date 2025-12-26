@@ -396,7 +396,7 @@
                     </div>
                     <h3 class="ml-4 text-xl font-bold text-gray-900 dark:text-white">Confirm Delete</h3>
                 </div>
-                <p class="text-gray-600 dark:text-gray-300 mb-6">Are you sure you want to delete this form? This action
+                <p class="text-gray-600 dark:text-gray-300 mb-6" id="deleteModalMessage">Are you sure you want to delete this form? This action
                     cannot be undone and all associated fields will be deleted.</p>
                 <div class="flex justify-end space-x-3">
                     <button id="cancelDelete"
@@ -406,6 +406,8 @@
                     <form id="deleteForm" method="POST" class="inline">
                         @csrf
                         @method('DELETE')
+                        <input type="hidden" id="deleteClientName" name="client_name" value="">
+                        <input type="hidden" id="deleteProjectName" name="project_name" value="">
                         <button type="submit"
                             class="px-5 py-2.5 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-700 hover:to-red-800 transition-all font-medium shadow-lg">
                             Delete
@@ -576,6 +578,13 @@
                                         </svg>
                                         <span>Export</span>
                                     </a>
+                                    <button onclick="confirmDeleteByProject('${clientName}', '${projectName}')" 
+                                       class="btn-action bg-red-600 hover:bg-red-700 text-white shadow-md">
+                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                        </svg>
+                                        <span>Delete</span>
+                                    </button>
                                 </div>
                             `;
                         }
@@ -633,10 +642,35 @@
                 }
             });
 
-            // Delete confirmation function
+            // Delete confirmation function for project-based delete
+            window.confirmDeleteByProject = function(clientName, projectName) {
+                const form = document.getElementById('deleteForm');
+                form.action = '{{ route('forms.delete-by-project') }}';
+                document.getElementById('deleteClientName').value = decodeURIComponent(clientName);
+                document.getElementById('deleteProjectName').value = decodeURIComponent(projectName);
+                
+                // Update modal message
+                const decodedClientName = decodeURIComponent(clientName);
+                const decodedProjectName = decodeURIComponent(projectName);
+                document.getElementById('deleteModalMessage').textContent = 
+                    `Are you sure you want to delete ALL forms for client "${decodedClientName}" and project "${decodedProjectName}"? This action cannot be undone and all associated fields will be deleted.`;
+                
+                const modal = document.getElementById('deleteModal');
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+                setTimeout(() => {
+                    modal.querySelector('div').classList.add('scale-100');
+                }, 10);
+            };
+
+            // Delete confirmation function (kept for backwards compatibility)
             window.confirmDelete = function(id) {
                 const form = document.getElementById('deleteForm');
                 form.action = `/forms/${id}`;
+                document.getElementById('deleteClientName').value = '';
+                document.getElementById('deleteProjectName').value = '';
+                document.getElementById('deleteModalMessage').textContent = 
+                    'Are you sure you want to delete this form? This action cannot be undone and all associated fields will be deleted.';
                 const modal = document.getElementById('deleteModal');
                 modal.classList.remove('hidden');
                 modal.classList.add('flex');
@@ -681,10 +715,18 @@
                         method: 'POST',
                         body: formData,
                         headers: {
-                            'X-Requested-With': 'XMLHttpRequest'
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
                         }
                     })
-                    .then(response => response.json())
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.json().then(err => {
+                                throw new Error(err.error || err.message || 'Failed to delete forms');
+                            });
+                        }
+                        return response.json();
+                    })
                     .then(data => {
                         const modal = document.getElementById('deleteModal');
                         modal.querySelector('div').classList.remove('scale-100');
@@ -693,18 +735,19 @@
                             modal.classList.remove('flex');
                         }, 200);
 
-                        table.ajax.reload();
+                        formsTable.ajax.reload();
 
                         // Show success message
                         const successMsg = document.createElement('div');
                         successMsg.className =
                             'mb-6 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-l-4 border-green-500 text-green-800 dark:text-green-200 px-5 py-4 rounded-r-lg shadow-md';
+                        const message = data.message || 'Forms deleted successfully.';
                         successMsg.innerHTML = `
                         <div class="flex items-center">
                             <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
                             </svg>
-                            <span class="font-medium">Form deleted successfully.</span>
+                            <span class="font-medium">${message}</span>
                         </div>
                     `;
                         document.querySelector('main').insertBefore(successMsg, document.querySelector(
@@ -720,7 +763,7 @@
                         console.error('Error:', error);
                         submitBtn.disabled = false;
                         submitBtn.textContent = originalText;
-                        alert('An error occurred while deleting the form.');
+                        alert(error.message || 'An error occurred while deleting the forms.');
                     });
             });
         });
@@ -728,3 +771,4 @@
 </body>
 
 </html>
+

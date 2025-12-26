@@ -15,3 +15,5 @@ Route::get('api/forms/{form}/fields', [FormController::class, 'getFormFields'])-
 Route::get('api/forms/sidebar-items', [FormController::class, 'getSidebarItems'])->name('api.sidebar-items');
 Route::get('forms/project/edit', [FormController::class, 'edit'])->name('forms.edit-by-project');
 Route::get('forms/project/export', [FormController::class, 'exportByProject'])->name('forms.export-by-project');
+Route::delete('forms/project/delete', [FormController::class, 'destroyByProject'])->name('forms.delete-by-project');
+Route::get('forms/{form}/export', [FormController::class, 'export'])->name('forms.export');

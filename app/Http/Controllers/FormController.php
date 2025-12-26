@@ -458,6 +458,69 @@ class FormController extends Controller
     }
 
     /**
+     * Delete all forms with the same client_name and project_name.
+     */
+    public function destroyByProject(Request $request): JsonResponse|\Illuminate\Http\RedirectResponse
+    {
+        $client_name = $request->get('client_name');
+        $project_name = $request->get('project_name');
+
+        if (!$client_name || !$project_name) {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['error' => 'Client name and project name are required.'], 400);
+            }
+            return redirect()->route('forms.index')
+                ->with('error', 'Client name and project name are required.');
+        }
+
+        DB::beginTransaction();
+        try {
+            // Get all forms with matching client_name and project_name
+            $forms = Form::where('client_name', $client_name)
+                ->where('project_name', $project_name)
+                ->get();
+
+            if ($forms->isEmpty()) {
+                if ($request->wantsJson() || $request->ajax()) {
+                    return response()->json(['error' => 'No forms found with the specified client name and project name.'], 404);
+                }
+                return redirect()->route('forms.index')
+                    ->with('error', 'No forms found with the specified client name and project name.');
+            }
+
+            // Delete all associated fields first (cascade delete)
+            foreach ($forms as $form) {
+                $form->fields()->delete();
+            }
+
+            // Delete all forms
+            $deletedCount = Form::where('client_name', $client_name)
+                ->where('project_name', $project_name)
+                ->delete();
+
+            DB::commit();
+
+            $message = "All forms ({$deletedCount}) for client '{$client_name}' and project '{$project_name}' have been deleted successfully.";
+
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['message' => $message, 'deleted_count' => $deletedCount]);
+            }
+
+            return redirect()->route('forms.index')
+                ->with('success', $message);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['error' => 'Failed to delete forms: ' . $e->getMessage()], 500);
+            }
+
+            return redirect()->route('forms.index')
+                ->with('error', 'Failed to delete forms. Please try again.');
+        }
+    }
+
+    /**
      * Display a listing of deleted forms.
      */
     public function deleted(Request $request): View|JsonResponse
@@ -555,6 +618,209 @@ class FormController extends Controller
     }
 
     /**
+     * Generate a sheet for a form in Excel export.
+     * 
+     * @param \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet
+     * @param Form $form
+     * @param string|null $logoPath
+     * @param array $config Configuration array with keys:
+     *   - 'headerRows': number of header rows (3 or 4)
+     *   - 'includeClientName': whether to include client name in header
+     *   - 'logoMergeCells': cells to merge for logo (e.g., 'A1:A3' or 'A1:A4')
+     *   - 'logoTotalRowHeight': total height for logo calculation
+     * @return void
+     */
+    private function generateFormSheet($sheet, Form $form, ?string $logoPath, array $config = []): void
+    {
+        $headerRows = $config['headerRows'] ?? 3;
+        $includeClientName = $config['includeClientName'] ?? false;
+        $logoMergeCells = $config['logoMergeCells'] ?? 'A1:A3';
+        $logoTotalRowHeight = $config['logoTotalRowHeight'] ?? 60;
+
+        // Add logo image
+        if ($logoPath && file_exists($logoPath)) {
+            // Set column width for A before adding logo
+            $sheet->getColumnDimension('A')->setWidth(11.5);
+
+            $sheet->mergeCells($logoMergeCells);
+            for ($i = 1; $i <= $headerRows; $i++) {
+                $sheet->getRowDimension($i)->setRowHeight(20);
+            }
+
+            $sheet->getStyle($logoMergeCells)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle($logoMergeCells)->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
+
+            $columnWidthPixels = 11.5 * 7;
+            $imageHeight = 70;
+            $imageWidth = $imageHeight;
+            $offsetX = ($columnWidthPixels - $imageWidth) / 2;
+            $offsetY = ($logoTotalRowHeight - $imageHeight) / 2;
+
+            $drawing = new Drawing();
+            $drawing->setName('Monogram');
+            $drawing->setDescription('Monogram');
+            $drawing->setPath($logoPath);
+            $drawing->setHeight($imageHeight);
+            $drawing->setWidth($imageWidth);
+            $drawing->setCoordinates('A1');
+            $drawing->setOffsetX(max(0, $offsetX));
+            $drawing->setOffsetY(max(0, $offsetY));
+            $drawing->setWorksheet($sheet);
+        } else {
+            $sheet->getColumnDimension('A')->setWidth(11.5);
+        }
+
+        // Calculate sum of total and round up to next whole number
+        $sumOfTotal = ceil($form->fields->sum('product') ?? 0);
+
+        // Header Section
+        $row = 1;
+        if ($includeClientName) {
+            $sheet->setCellValue('B' . $row, 'CLIENT NAME');
+            $sheet->setCellValue('C' . $row, ucwords(strtolower($form->client_name)));
+            $row++;
+        }
+
+        $sheet->setCellValue('B' . $row, 'PROJECT NAME');
+        $sheet->setCellValue('C' . $row, ucwords(strtolower($form->project_name)));
+        $row++;
+
+        $sheet->setCellValue('B' . $row, 'ITEM');
+        $sheet->setCellValue('C' . $row, ucwords(strtolower($form->item_name ?? '')));
+        $row++;
+
+        $tqtyRow = $row;
+        $sheet->setCellValue('B' . $tqtyRow, 'T.QTY');
+        $sheet->setCellValue('C' . $tqtyRow, (int)$sumOfTotal);
+        $sheet->setCellValue('D' . $tqtyRow, $form->unit ?? 'CFT');
+        // Format T.QTY as integer (no decimals)
+        $sheet->getStyle('C' . $tqtyRow)->getNumberFormat()->setFormatCode('0');
+
+        // Style header rows
+        $headerLabelStyle = [
+            'font' => ['bold' => true, 'size' => 12, 'color' => ['rgb' => '000000']],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_LEFT,
+                'vertical' => Alignment::VERTICAL_CENTER
+            ]
+        ];
+        $headerValueStyle = [
+            'font' => ['bold' => false, 'size' => 12, 'color' => ['rgb' => '000000']],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_LEFT,
+                'vertical' => Alignment::VERTICAL_CENTER
+            ]
+        ];
+
+        $startRow = $includeClientName ? 1 : 1;
+        for ($i = $startRow; $i <= $headerRows; $i++) {
+            $sheet->getStyle('B' . $i)->applyFromArray($headerLabelStyle);
+            $sheet->getStyle('C' . $i)->applyFromArray($headerValueStyle);
+        }
+        // Unit - simple (not bold)
+        $sheet->getStyle('D' . $tqtyRow)->applyFromArray($headerValueStyle);
+
+        // Add spacing row
+        $spacingRow = $headerRows + 1;
+        $sheet->setCellValue('A' . $spacingRow, '');
+        $sheet->getRowDimension($spacingRow)->setRowHeight(5);
+
+        // Fields Table Header
+        $tableHeaderRow = $spacingRow + 1;
+        $sheet->setCellValue('A' . $tableHeaderRow, 'S. NO');
+        $sheet->setCellValue('B' . $tableHeaderRow, 'DESCRIPTION');
+        $sheet->setCellValue('C' . $tableHeaderRow, 'No');
+        $sheet->setCellValue('D' . $tableHeaderRow, 'L');
+        $sheet->setCellValue('E' . $tableHeaderRow, 'W');
+        $sheet->setCellValue('F' . $tableHeaderRow, 'H');
+        $sheet->setCellValue('G' . $tableHeaderRow, 'T  Qty');
+
+        // Style table header
+        $tableHeaderStyle = [
+            'font' => ['bold' => true, 'size' => 12, 'color' => ['rgb' => '000000']],
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['rgb' => 'b9b9b9']
+            ],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                'vertical' => Alignment::VERTICAL_CENTER
+            ],
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => Border::BORDER_THIN,
+                    'color' => ['rgb' => '404040']
+                ]
+            ]
+        ];
+        $sheet->getStyle('A' . $tableHeaderRow . ':G' . $tableHeaderRow)->applyFromArray($tableHeaderStyle);
+        $sheet->getRowDimension($tableHeaderRow)->setRowHeight(25);
+        $sheet->getStyle('B' . $tableHeaderRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+
+        // Fields Data
+        $dataRow = $tableHeaderRow + 1;
+        foreach ($form->fields as $fieldIndex => $field) {
+            $sheet->setCellValue('A' . $dataRow, $fieldIndex + 1);
+            $sheet->setCellValue('B' . $dataRow, $field->description ?? '');
+            $sheet->setCellValue('C' . $dataRow, $field->quantity ?? '');
+            $sheet->setCellValue('D' . $dataRow, $field->length ?? '');
+            $sheet->setCellValue('E' . $dataRow, $field->width ?? '');
+            $sheet->setCellValue('F' . $dataRow, $field->height ?? '');
+            $sheet->setCellValue('G' . $dataRow, $field->product ?? '');
+
+            // Style data rows
+            $dataStyle = [
+                'font' => ['size' => 11, 'color' => ['rgb' => '000000']],
+                'borders' => [
+                    'allBorders' => [
+                        'borderStyle' => Border::BORDER_THIN,
+                        'color' => ['rgb' => '404040']
+                    ]
+                ],
+                'alignment' => [
+                    'horizontal' => Alignment::HORIZONTAL_CENTER,
+                    'vertical' => Alignment::VERTICAL_CENTER
+                ]
+            ];
+            $sheet->getStyle('A' . $dataRow . ':G' . $dataRow)->applyFromArray($dataStyle);
+            $sheet->getStyle('B' . $dataRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+
+            $dataRow++;
+        }
+
+        // Set column widths
+        $sheet->getColumnDimension('A')->setWidth(11.5);
+        $sheet->getColumnDimension('B')->setWidth(31);
+        $sheet->getColumnDimension('C')->setWidth(7);
+        $sheet->getColumnDimension('D')->setWidth(11.5);
+        $sheet->getColumnDimension('E')->setWidth(11.5);
+        $sheet->getColumnDimension('F')->setWidth(11.5);
+        $sheet->getColumnDimension('G')->setWidth(11.5);
+
+        // Set page setup
+        $sheet->getPageSetup()->setPaperSize(PageSetup::PAPERSIZE_A4);
+        $sheet->getPageSetup()->setOrientation(PageSetup::ORIENTATION_PORTRAIT);
+        $sheet->getPageSetup()->setFitToWidth(1);
+        $sheet->getPageSetup()->setFitToHeight(0);
+
+        $lastRow = $dataRow - 1;
+        $sheet->getPageSetup()->setPrintArea('A1:G' . $lastRow);
+
+        // Set margins
+        $sheet->getPageMargins()->setTop(0.5);
+        $sheet->getPageMargins()->setRight(0.5);
+        $sheet->getPageMargins()->setBottom(1.0);
+        $sheet->getPageMargins()->setLeft(0.5);
+
+        // Set page footer
+        $footerText = "&C&12&B MIA CONSTRUCTION\n";
+        $footerText .= "\n&C&10 Consultant - Designer - Estimator - Contractor\n";
+        $footerText .= "&C&10 - 03218600259 -";
+        $sheet->getHeaderFooter()->setOddFooter($footerText);
+        $sheet->getHeaderFooter()->setEvenFooter($footerText);
+    }
+
+    /**
      * Export multiple forms to Excel with multiple sheets.
      */
     public function exportByProject(Request $request): StreamedResponse|\Illuminate\Http\RedirectResponse|JsonResponse
@@ -620,176 +886,13 @@ class FormController extends Controller
             $spreadsheet->addSheet($sheet, $index);
             $sheet->setTitle($sheetTitle);
 
-            // Add logo image in A1-A3 (merged cells)
-            if ($logoPath && file_exists($logoPath)) {
-                $sheet->mergeCells('A1:A3');
-                $sheet->getRowDimension(1)->setRowHeight(20);
-                $sheet->getRowDimension(2)->setRowHeight(20);
-                $sheet->getRowDimension(3)->setRowHeight(20);
-
-                $sheet->getStyle('A1:A3')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-                $sheet->getStyle('A1:A3')->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
-
-                $columnWidth = $sheet->getColumnDimension('A')->getWidth() * 7;
-                $imageHeight = 70;
-                $imageWidth = $imageHeight;
-                $totalRowHeight = 60;
-                $offsetX = ($columnWidth - $imageWidth) / 2;
-                $offsetY = ($totalRowHeight - $imageHeight) / 2;
-
-                $drawing = new Drawing();
-                $drawing->setName('Monogram');
-                $drawing->setDescription('Monogram');
-                $drawing->setPath($logoPath);
-                $drawing->setHeight($imageHeight);
-                $drawing->setWidth($imageWidth);
-                $drawing->setCoordinates('A1');
-                $drawing->setOffsetX(max(0, $offsetX));
-                $drawing->setOffsetY(max(0, $offsetY));
-                $drawing->setWorksheet($sheet);
-            }
-
-            // Calculate sum of total and round up to next whole number
-            $sumOfTotal = ceil($form->fields->sum('product') ?? 0);
-
-            // Header Section (Rows 1-3)
-            $sheet->setCellValue('B1', 'Project Name');
-            $sheet->setCellValue('C1', ucwords(strtolower($form->project_name)));
-
-            $sheet->setCellValue('B2', 'Item');
-            $sheet->setCellValue('C2', ucwords(strtolower($form->item_name ?? '')));
-
-            $sheet->setCellValue('B3', 'T.QTY');
-            $sheet->setCellValue('C3', (int)$sumOfTotal);
-            $sheet->setCellValue('D3', $form->unit ?? 'CFT');
-            // Format T.QTY as integer (no decimals)
-            $sheet->getStyle('C3')->getNumberFormat()->setFormatCode('0');
-
-            // Style header rows
-            $headerLabelStyle = [
-                'font' => ['bold' => true, 'size' => 12, 'color' => ['rgb' => '000000']],
-                'alignment' => [
-                    'horizontal' => Alignment::HORIZONTAL_LEFT,
-                    'vertical' => Alignment::VERTICAL_CENTER
-                ]
-            ];
-            $headerValueStyle = [
-                'font' => ['bold' => false, 'size' => 12, 'color' => ['rgb' => '000000']],
-                'alignment' => [
-                    'horizontal' => Alignment::HORIZONTAL_LEFT,
-                    'vertical' => Alignment::VERTICAL_CENTER
-                ]
-            ];
-
-            $sheet->getStyle('B1')->applyFromArray($headerLabelStyle);
-            $sheet->getStyle('B2')->applyFromArray($headerLabelStyle);
-            $sheet->getStyle('B3')->applyFromArray($headerLabelStyle);
-            $sheet->getStyle('F3')->applyFromArray($headerLabelStyle);
-            $sheet->getStyle('C1')->applyFromArray($headerValueStyle);
-            $sheet->getStyle('C2')->applyFromArray($headerValueStyle);
-            $sheet->getStyle('C3')->applyFromArray($headerValueStyle);
-            $sheet->getStyle('G3')->applyFromArray($headerValueStyle);
-            // Make unit (D3) bold
-            $sheet->getStyle('D3')->applyFromArray($headerLabelStyle);
-
-            // Add spacing row
-            $sheet->setCellValue('A4', '');
-            $sheet->getRowDimension(4)->setRowHeight(5);
-
-            // Fields Table Header (Row 5)
-            $sheet->setCellValue('A5', 'S. NO');
-            $sheet->setCellValue('B5', 'DESCRIPTION');
-            $sheet->setCellValue('C5', 'QTY');
-            $sheet->setCellValue('D5', 'L');
-            $sheet->setCellValue('E5', 'W');
-            $sheet->setCellValue('F5', 'H');
-            $sheet->setCellValue('G5', 'TOTAL');
-
-            // Style table header
-            $tableHeaderStyle = [
-                'font' => ['bold' => true, 'size' => 12, 'color' => ['rgb' => '000000']],
-                'fill' => [
-                    'fillType' => Fill::FILL_SOLID,
-                    'startColor' => ['rgb' => 'b9b9b9']
-                ],
-                'alignment' => [
-                    'horizontal' => Alignment::HORIZONTAL_CENTER,
-                    'vertical' => Alignment::VERTICAL_CENTER
-                ],
-                'borders' => [
-                    'allBorders' => [
-                        'borderStyle' => Border::BORDER_THIN,
-                        'color' => ['rgb' => '404040']
-                    ]
-                ]
-            ];
-            $sheet->getStyle('A5:G5')->applyFromArray($tableHeaderStyle);
-            $sheet->getRowDimension(5)->setRowHeight(25);
-            $sheet->getStyle('B5')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
-
-            // Fields Data
-            $row = 6;
-            foreach ($form->fields as $fieldIndex => $field) {
-                $sheet->setCellValue('A' . $row, $fieldIndex + 1);
-                $sheet->setCellValue('B' . $row, $field->description ?? '');
-                $sheet->setCellValue('C' . $row, $field->quantity ?? '');
-                $sheet->setCellValue('D' . $row, $field->length ?? '');
-                $sheet->setCellValue('E' . $row, $field->width ?? '');
-                $sheet->setCellValue('F' . $row, $field->height ?? '');
-                $sheet->setCellValue('G' . $row, $field->product ?? '');
-
-                // Style data rows
-                $dataStyle = [
-                    'font' => ['size' => 11, 'color' => ['rgb' => '000000']],
-                    'borders' => [
-                        'allBorders' => [
-                            'borderStyle' => Border::BORDER_THIN,
-                            'color' => ['rgb' => '404040']
-                        ]
-                    ],
-                    'alignment' => [
-                        'horizontal' => Alignment::HORIZONTAL_CENTER,
-                        'vertical' => Alignment::VERTICAL_CENTER
-                    ]
-                ];
-                $sheet->getStyle('A' . $row . ':G' . $row)->applyFromArray($dataStyle);
-                $sheet->getStyle('B' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
-                // Format TOTAL column (G) as integer (no decimals)
-                $sheet->getStyle('G' . $row)->getNumberFormat()->setFormatCode('0');
-
-                $row++;
-            }
-
-            // Set column widths
-            $sheet->getColumnDimension('A')->setWidth(11.5);
-            $sheet->getColumnDimension('B')->setWidth(31);
-            $sheet->getColumnDimension('C')->setWidth(7);
-            $sheet->getColumnDimension('D')->setWidth(11.5);
-            $sheet->getColumnDimension('E')->setWidth(11.5);
-            $sheet->getColumnDimension('F')->setWidth(11.5);
-            $sheet->getColumnDimension('G')->setWidth(11.5);
-
-            // Set page setup
-            $sheet->getPageSetup()->setPaperSize(PageSetup::PAPERSIZE_A4);
-            $sheet->getPageSetup()->setOrientation(PageSetup::ORIENTATION_PORTRAIT);
-            $sheet->getPageSetup()->setFitToWidth(1);
-            $sheet->getPageSetup()->setFitToHeight(0);
-
-            $lastRow = $row - 1;
-            $sheet->getPageSetup()->setPrintArea('A1:G' . $lastRow);
-
-            // Set margins
-            $sheet->getPageMargins()->setTop(0.5);
-            $sheet->getPageMargins()->setRight(0.5);
-            $sheet->getPageMargins()->setBottom(1.0);
-            $sheet->getPageMargins()->setLeft(0.5);
-
-            // Set page footer
-            $footerText = "&C&12&B MIA CONSTRUCTION\n";
-            $footerText .= "\n&C&10 Consultant - Designer - Estimator - Contractor\n";
-            $footerText .= "&C&10 - 03218600259 -";
-            $sheet->getHeaderFooter()->setOddFooter($footerText);
-            $sheet->getHeaderFooter()->setEvenFooter($footerText);
+            // Generate the form sheet with configuration for multi-item export
+            $this->generateFormSheet($sheet, $form, $logoPath, [
+                'headerRows' => 3,
+                'includeClientName' => false,
+                'logoMergeCells' => 'A1:A3',
+                'logoTotalRowHeight' => 60,
+            ]);
         }
 
         // Set active sheet to first one
@@ -799,7 +902,90 @@ class FormController extends Controller
         $writer = new Xlsx($spreadsheet);
 
         // Generate filename
-        $filename = str_replace(' ', '_', $client_name) . '_' . str_replace(' ', '_', $project_name) . '_' . date('Y-m-d') . '.xlsx';
+        $filename = str_replace(' ', '_', $client_name) . '_' . str_replace(' ', '_', $project_name) . '.xlsx';
+
+        // Return as download
+        return new StreamedResponse(
+            function () use ($writer) {
+                $writer->save('php://output');
+            },
+            200,
+            [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+                'Cache-Control' => 'max-age=0',
+            ]
+        );
+    }
+
+    /**
+     * Export a single form to Excel.
+     */
+    public function export(Form $form): StreamedResponse|\Illuminate\Http\RedirectResponse
+    {
+        $form->load('fields');
+
+        if ($form->fields->isEmpty()) {
+            return back()->with('error', 'This form has no fields to export.');
+        }
+
+        $spreadsheet = new Spreadsheet();
+
+        // Remove default sheet
+        $spreadsheet->removeSheetByIndex(0);
+
+        // Helper function to find logo path
+        $findLogoPath = function () {
+            $possiblePaths = [
+                public_path('images/monogram.jpeg'),
+                base_path('../images/monogram.jpeg'),
+                base_path('../../images/monogram.jpeg'),
+                '/images/monogram.jpeg',
+                public_path('../images/monogram.jpeg'),
+                public_path('images/logo.png'),
+                public_path('images/logo.jpg'),
+                public_path('logo.png'),
+                public_path('logo.jpg'),
+            ];
+
+            foreach ($possiblePaths as $path) {
+                if (file_exists($path)) {
+                    return $path;
+                }
+            }
+            return null;
+        };
+
+        $logoPath = $findLogoPath();
+
+        // Sanitize sheet title - Excel doesn't allow: : \ / ? * [ ]
+        $rawTitle = $form->project_name . ' - ' . $form->item_name ?? 'Form';
+        $sanitizedTitle = preg_replace('/[:\/\\?*\[\]]/', '-', $rawTitle);
+        $sheetTitle = substr($sanitizedTitle, 0, 31);
+
+        $sheet = new \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet($spreadsheet, $sheetTitle);
+        $spreadsheet->addSheet($sheet, 0);
+        $sheet->setTitle($sheetTitle);
+
+        // Generate the form sheet with configuration for single item export (same as project-wise export)
+        $this->generateFormSheet($sheet, $form, $logoPath, [
+            'headerRows' => 3,
+            'includeClientName' => false,
+            'logoMergeCells' => 'A1:A3',
+            'logoTotalRowHeight' => 60,
+        ]);
+
+        // Set active sheet
+        $spreadsheet->setActiveSheetIndex(0);
+
+        // Create writer
+        $writer = new Xlsx($spreadsheet);
+
+        // Generate filename
+        $clientName = str_replace(' ', '_', $form->client_name);
+        $projectName = str_replace(' ', '_', $form->project_name);
+        $itemName = $form->item_name ? str_replace(' ', '_', $form->item_name) : 'Form';
+        $filename = $clientName . '_' . $projectName . '_' . $itemName . '.xlsx';
 
         // Return as download
         return new StreamedResponse(

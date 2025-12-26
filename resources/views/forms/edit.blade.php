@@ -174,10 +174,10 @@
                         <div id="sidebarItemsList" class="space-y-3 max-h-[calc(100vh-300px)] overflow-y-auto">
                             @if ($relatedForms->count() > 0)
                                 @foreach ($relatedForms as $relatedForm)
-                                    <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors cursor-pointer sidebar-item"
+                                    <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors sidebar-item"
                                         data-form-id="{{ $relatedForm->id }}">
                                         <div class="flex items-start justify-between">
-                                            <div class="flex-1">
+                                            <div class="flex-1 cursor-pointer" onclick="loadFormFields({{ $relatedForm->id }})">
                                                 <p class="text-sm font-medium text-gray-900 dark:text-white">
                                                     {{ $relatedForm->item_name ?: 'No Item Name' }}
                                                 </p>
@@ -185,6 +185,14 @@
                                                     Created: {{ $relatedForm->created_at->format('M d, Y') }}
                                                 </p>
                                             </div>
+                                            <button type="button" 
+                                                onclick="event.stopPropagation(); confirmDeleteItem({{ $relatedForm->id }}, '{{ addslashes($relatedForm->item_name ?: 'No Item Name') }}')"
+                                                class="ml-2 p-1.5 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                                                title="Delete item">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                                </svg>
+                                            </button>
                                         </div>
                                     </div>
                                 @endforeach
@@ -262,7 +270,7 @@
 
                                     <!-- Item Name and Unit Fields -->
                                     <div id="itemNameField" class="mb-6">
-                                        <div class="grid grid-cols-2 gap-4">
+                                        <div class="grid grid-cols-2 gap-4 mb-4">
                                             <div>
                                                 <label for="fields_item_name"
                                                     class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -286,7 +294,40 @@
                                                     <option value="CUM">CUM</option>
                                                     <option value="SQM">SQM</option>
                                                     <option value="RM">RM</option>
+                                                    <option value="KG">KG</option>
                                                 </select>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Duplicate Section (only shown in Add Item mode) -->
+                                        <div id="duplicateSection" class="hidden mt-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
+                                            <div class="flex items-center mb-3">
+                                                <input type="checkbox" id="duplicateCheckbox" 
+                                                    class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                                                <label for="duplicateCheckbox" class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                    Duplicate from existing item
+                                                </label>
+                                            </div>
+                                            <div id="duplicateDropdownContainer" class="hidden">
+                                                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                                    <div class="md:col-span-2">
+                                                        <label for="duplicateItemSelect"
+                                                            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                            Select Item to Duplicate
+                                                        </label>
+                                                        <select id="duplicateItemSelect"
+                                                            class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
+                                                            <option value="">-- Select an item --</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="flex items-end">
+                                                        <button type="button" id="duplicateButton"
+                                                            class="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition-colors duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                                                            disabled>
+                                                            Duplicate
+                                                        </button>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -317,7 +358,7 @@
                                                     Height</th>
                                                 <th
                                                     class="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider w-32 whitespace-nowrap">
-                                                    T  QTY</th>
+                                                    T QTY</th>
                                                 <th
                                                     class="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider w-20">
                                                     Action</th>
@@ -334,6 +375,40 @@
                 </div>
             </div>
         </main>
+
+        <!-- Delete Item Confirmation Modal -->
+        <div id="deleteItemModal"
+            class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full transform transition-all">
+                <div class="p-6">
+                    <div class="flex items-center mb-4">
+                        <div
+                            class="flex-shrink-0 w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
+                            <svg class="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+                                </path>
+                            </svg>
+                        </div>
+                        <h3 class="ml-4 text-xl font-bold text-gray-900 dark:text-white">Confirm Delete</h3>
+                    </div>
+                    <p class="text-gray-600 dark:text-gray-300 mb-6" id="deleteItemModalMessage">
+                        Are you sure you want to delete this item? This action cannot be undone and all associated fields will be deleted.
+                    </p>
+                    <div class="flex justify-end space-x-3">
+                        <button id="cancelDeleteItem"
+                            class="px-5 py-2.5 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors font-medium">
+                            Cancel
+                        </button>
+                        <button id="confirmDeleteItem"
+                            class="px-5 py-2.5 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-700 hover:to-red-800 transition-all font-medium shadow-lg">
+                            Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- Fixed Form Actions -->
         <div
@@ -356,6 +431,15 @@
                         class="hidden px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition-colors duration-200">
                         Update Form
                     </button>
+                    <a href="#" id="exportCurrentBtn"
+                        class="hidden inline-flex items-center px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg shadow-sm transition-colors duration-200">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                            </path>
+                        </svg>
+                        Export
+                    </a>
                 </div>
             </div>
         </div>
@@ -368,21 +452,37 @@
         // Handle sidebar item clicks
         $(document).ready(function() {
             // Delegate click handler for sidebar items (works for dynamically added items)
-            $(document).on('click', '.sidebar-item', function() {
-                const formId = $(this).data('form-id');
-                loadFormFields(formId);
-
-                // Update active state
-                $('.sidebar-item').removeClass(
-                    'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700');
-                $('.sidebar-item').addClass('bg-gray-50 dark:bg-gray-700');
-                $(this).removeClass('bg-gray-50 dark:bg-gray-700');
-                $(this).addClass('bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700');
-            });
+            // Note: Click handling is now done via onclick in the item div to allow delete button clicks
 
             // Handle Add Item button click
             $('#addItemBtn').on('click', function() {
                 loadEmptyFieldsForm();
+            });
+
+            // Handle duplicate checkbox change
+            $('#duplicateCheckbox').on('change', function() {
+                if ($(this).is(':checked')) {
+                    $('#duplicateDropdownContainer').removeClass('hidden');
+                    loadSidebarItemsForDuplicate();
+                } else {
+                    $('#duplicateDropdownContainer').addClass('hidden');
+                    $('#duplicateItemSelect').val('');
+                    $('#duplicateButton').prop('disabled', true);
+                }
+            });
+
+            // Handle duplicate item select change
+            $('#duplicateItemSelect').on('change', function() {
+                const selectedValue = $(this).val();
+                $('#duplicateButton').prop('disabled', !selectedValue);
+            });
+
+            // Handle duplicate button click
+            $('#duplicateButton').on('click', function() {
+                const selectedFormId = $('#duplicateItemSelect').val();
+                if (selectedFormId) {
+                    duplicateItemFields(selectedFormId);
+                }
             });
 
             // Handle form submission
@@ -394,6 +494,13 @@
 
         function loadFormFields(formId) {
             currentFormId = formId;
+
+            // Update active state
+            $('.sidebar-item').removeClass(
+                'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700');
+            $('.sidebar-item').addClass('bg-gray-50 dark:bg-gray-700');
+            $(`.sidebar-item[data-form-id="${formId}"]`).removeClass('bg-gray-50 dark:bg-gray-700');
+            $(`.sidebar-item[data-form-id="${formId}"]`).addClass('bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700');
 
             // Show loading state
             $('#fieldsSection').addClass('hidden');
@@ -419,11 +526,16 @@
                     $('#addRowBtn').removeClass('hidden');
                     $('#updateFormBtn').removeClass('hidden');
                     $('#updateFormBtn').text('Update Form');
+                    $('#exportCurrentBtn').removeClass('hidden');
+                    $('#exportCurrentBtn').attr('href', `/forms/${formId}/export`);
 
                     // Show and populate item name and unit fields for existing items
                     $('#itemNameField').removeClass('hidden');
                     $('#fields_item_name').val(response.item_name || '');
                     $('#fields_unit').val(response.unit || '');
+                    
+                    // Hide duplicate section when editing existing item
+                    $('#duplicateSection').addClass('hidden');
 
                     // Update form for editing
                     $('#formForm').attr('action', `/forms/${formId}`);
@@ -573,6 +685,13 @@
             $('#fields_item_name').val('');
             $('#fields_unit').val('');
 
+            // Show duplicate section for new items
+            $('#duplicateSection').removeClass('hidden');
+            $('#duplicateCheckbox').prop('checked', false);
+            $('#duplicateDropdownContainer').addClass('hidden');
+            $('#duplicateItemSelect').val('');
+            $('#duplicateButton').prop('disabled', true);
+
             // Generate 30 empty rows
             const emptyFields = [];
             for (let i = 0; i < 30; i++) {
@@ -600,6 +719,7 @@
             $('#addRowBtn').removeClass('hidden');
             $('#updateFormBtn').removeClass('hidden');
             $('#updateFormBtn').text('Create Form');
+            $('#exportCurrentBtn').addClass('hidden');
 
             // Clear active state from sidebar items
             $('.sidebar-item').removeClass('bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700');
@@ -744,10 +864,10 @@
                             'bg-gray-50 dark:bg-gray-700';
 
                         const itemHtml = `
-                            <div class="p-3 ${bgClass} rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors cursor-pointer sidebar-item"
+                            <div class="p-3 ${bgClass} rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors sidebar-item"
                                  data-form-id="${item.id}">
                                 <div class="flex items-start justify-between">
-                                    <div class="flex-1">
+                                    <div class="flex-1 cursor-pointer" onclick="loadFormFields(${item.id})">
                                         <p class="text-sm font-medium text-gray-900 dark:text-white">
                                             ${itemName}
                                         </p>
@@ -755,6 +875,14 @@
                                             Created: ${createdAt}
                                         </p>
                                     </div>
+                                    <button type="button" 
+                                        onclick="event.stopPropagation(); confirmDeleteItem(${item.id}, '${itemName.replace(/'/g, "\\'")}')"
+                                        class="ml-2 p-1.5 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                                        title="Delete item">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                        </svg>
+                                    </button>
                                 </div>
                             </div>
                         `;
@@ -787,6 +915,110 @@
                     $(this).remove();
                 });
             }, 3000);
+        }
+
+        function loadSidebarItemsForDuplicate() {
+            const clientName = $('#client_name').val();
+            const projectName = $('#project_name').val();
+
+            if (!clientName || !projectName) {
+                alert('Please fill in Client Name and Project Name first');
+                $('#duplicateCheckbox').prop('checked', false);
+                $('#duplicateDropdownContainer').addClass('hidden');
+                return;
+            }
+
+            const select = $('#duplicateItemSelect');
+            select.html('<option value="">Loading items...</option>');
+
+            $.ajax({
+                url: '{{ route('api.sidebar-items') }}',
+                method: 'GET',
+                data: {
+                    client_name: clientName,
+                    project_name: projectName
+                },
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                    'Accept': 'application/json'
+                },
+                success: function(items) {
+                    select.html('<option value="">-- Select an item --</option>');
+                    
+                    if (items.length === 0) {
+                        select.html('<option value="">No items available</option>');
+                        return;
+                    }
+
+                    items.forEach(function(item) {
+                        const itemName = item.item_name || 'No Item Name';
+                        const option = $('<option></option>')
+                            .attr('value', item.id)
+                            .text(itemName);
+                        select.append(option);
+                    });
+                },
+                error: function() {
+                    select.html('<option value="">Error loading items</option>');
+                    console.error('Failed to load sidebar items for duplicate');
+                }
+            });
+        }
+
+        function duplicateItemFields(formId) {
+            // Show loading state
+            const duplicateButton = $('#duplicateButton');
+            const originalText = duplicateButton.text();
+            duplicateButton.prop('disabled', true).text('Loading...');
+
+            $.ajax({
+                url: `/api/forms/${formId}/fields`,
+                method: 'GET',
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
+                success: function(response) {
+                    // Populate item name and unit
+                    if (response.item_name) {
+                        $('#fields_item_name').val(response.item_name);
+                    }
+                    if (response.unit) {
+                        $('#fields_unit').val(response.unit);
+                    }
+
+                    // Remove field IDs from duplicated fields so they're treated as new fields
+                    const duplicatedResponse = {
+                        form_id: null,
+                        item_name: response.item_name,
+                        unit: response.unit,
+                        fields: response.fields.map(function(field) {
+                            return {
+                                id: null,  // Remove ID so it's treated as a new field
+                                index: field.index,
+                                description: field.description || '',
+                                quantity: field.quantity || '',
+                                length: field.length || '',
+                                width: field.width || '',
+                                height: field.height || '',
+                                product: field.product || ''
+                            };
+                        })
+                    };
+
+                    // Render the fields table with duplicated data (without IDs)
+                    renderFieldsTable(duplicatedResponse);
+                    
+                    duplicateButton.prop('disabled', false).text(originalText);
+                    
+                    // Show success message
+                    showSuccessMessage('Fields duplicated successfully!');
+                },
+                error: function(xhr) {
+                    duplicateButton.prop('disabled', false).text(originalText);
+                    alert('Failed to load fields from selected item. Please try again.');
+                    console.error('Error loading form fields:', xhr);
+                }
+            });
         }
 
         function addFieldRow() {
@@ -953,6 +1185,114 @@
                         calculateProduct(input);
                     }
                 });
+        });
+
+        // Delete item functionality
+        let itemToDeleteId = null;
+
+        function confirmDeleteItem(formId, itemName) {
+            itemToDeleteId = formId;
+            const modal = document.getElementById('deleteItemModal');
+            const message = document.getElementById('deleteItemModalMessage');
+            message.textContent = `Are you sure you want to delete the item "${itemName}"? This action cannot be undone and all associated fields will be deleted.`;
+            
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => {
+                modal.querySelector('div').classList.add('scale-100');
+            }, 10);
+        }
+
+        // Cancel delete item
+        document.getElementById('cancelDeleteItem').addEventListener('click', function() {
+            const modal = document.getElementById('deleteItemModal');
+            modal.querySelector('div').classList.remove('scale-100');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                itemToDeleteId = null;
+            }, 200);
+        });
+
+        // Close modal on outside click
+        document.getElementById('deleteItemModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.querySelector('div').classList.remove('scale-100');
+                setTimeout(() => {
+                    this.classList.add('hidden');
+                    this.classList.remove('flex');
+                    itemToDeleteId = null;
+                }, 200);
+            }
+        });
+
+        // Confirm delete item
+        document.getElementById('confirmDeleteItem').addEventListener('click', function() {
+            if (!itemToDeleteId) {
+                return;
+            }
+
+            const confirmBtn = this;
+            const originalText = confirmBtn.textContent;
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = 'Deleting...';
+
+            $.ajax({
+                url: `/forms/${itemToDeleteId}`,
+                method: 'POST',
+                data: {
+                    _method: 'DELETE',
+                    _token: $('meta[name="csrf-token"]').attr('content')
+                },
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                },
+                success: function(response) {
+                    const modal = document.getElementById('deleteItemModal');
+                    modal.querySelector('div').classList.remove('scale-100');
+                    setTimeout(() => {
+                        modal.classList.add('hidden');
+                        modal.classList.remove('flex');
+                    }, 200);
+
+                    // Refresh sidebar
+                    refreshSidebar();
+
+                    // If the deleted item was currently being edited, clear the form
+                    if (currentFormId === itemToDeleteId) {
+                        currentFormId = null;
+                        $('#messageSection').removeClass('hidden');
+                        $('#fieldsSection').addClass('hidden');
+                        $('#addRowBtn').addClass('hidden');
+                        $('#updateFormBtn').addClass('hidden');
+                        $('#exportCurrentBtn').addClass('hidden');
+                        $('#duplicateSection').addClass('hidden');
+                    }
+
+                    // Show success message
+                    showSuccessMessage('Item deleted successfully!');
+                    
+                    itemToDeleteId = null;
+                    confirmBtn.disabled = false;
+                    confirmBtn.textContent = originalText;
+                },
+                error: function(xhr) {
+                    confirmBtn.disabled = false;
+                    confirmBtn.textContent = originalText;
+                    
+                    let errorMessage = 'Failed to delete item. Please try again.';
+                    if (xhr.responseJSON && xhr.responseJSON.error) {
+                        errorMessage = xhr.responseJSON.error;
+                    } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMessage = xhr.responseJSON.message;
+                    }
+                    
+                    alert(errorMessage);
+                    console.error('Error deleting item:', xhr);
+                }
+            });
         });
     </script>
 </body>
