@@ -42,3 +42,8 @@ Route::post('api/bar-bending-form-items/update-name', [FormController::class, 'u
 Route::delete('api/bar-bending-form-items/{item}', [FormController::class, 'deleteBarBendingFormItem'])->name('api.delete-bar-bending-form-item');
 Route::get('api/locations', [FormController::class, 'getLocations'])->name('api.locations');
 Route::post('api/bar-bending-form-locations', [FormController::class, 'addLocation'])->name('api.add-location');
+Route::delete('api/bar-bending-form-locations/{location}', [FormController::class, 'deleteLocation'])->name('api.delete-location');
+Route::get('api/formulas', [FormController::class, 'getFormulas'])->name('api.formulas');
+Route::post('api/formulas', [FormController::class, 'storeFormula'])->name('api.store-formula');
+Route::put('api/formulas/{formula}', [FormController::class, 'updateFormula'])->name('api.update-formula');
+Route::delete('api/formulas/{formula}', [FormController::class, 'deleteFormula'])->name('api.delete-formula');

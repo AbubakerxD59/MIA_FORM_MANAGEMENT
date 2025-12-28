@@ -7,8 +7,10 @@ use App\Models\Field;
 use App\Models\BarBendingFormItem;
 use App\Models\BarBendingLocation;
 use App\Models\BarBendingFormLocation;
+use App\Models\Formula;
 use App\Services\FormService;
 use App\Services\BBSService;
+use App\Services\FormulaService;
 use App\Http\Requests\StoreFormRequest;
 use App\Http\Requests\UpdateFormRequest;
 use Illuminate\Http\Request;
@@ -20,11 +22,13 @@ class FormController extends Controller
 {
     protected FormService $formService;
     protected BBSService $bbsService;
+    protected FormulaService $formulaService;
 
-    public function __construct(FormService $formService, BBSService $bbsService)
+    public function __construct(FormService $formService, BBSService $bbsService, FormulaService $formulaService)
     {
         $this->formService = $formService;
         $this->bbsService = $bbsService;
+        $this->formulaService = $formulaService;
     }
     /**
      * Display a listing of the forms.
@@ -93,7 +97,7 @@ class FormController extends Controller
     public function getBarBendingFormItem(BarBendingFormItem $item): JsonResponse
     {
         $item = $this->bbsService->getBarBendingFormItem($item->id);
-        
+
         if (!$item) {
             return response()->json(['error' => 'Item not found'], 404);
         }
@@ -156,7 +160,7 @@ class FormController extends Controller
                     $validated['form_id'],
                     $validated['name']
                 );
-                
+
                 if ($existingItem) {
                     // Item already exists, update it (this ensures timestamps are updated)
                     $item = $this->bbsService->updateBarBendingFormItemName($existingItem, $validated['name']);
@@ -198,7 +202,7 @@ class FormController extends Controller
     public function getLocations(Request $request): JsonResponse
     {
         $query = $request->get('q', '');
-        
+
         $locations = BarBendingLocation::where('name', 'like', "%{$query}%")
             ->orderBy('name', 'asc')
             ->limit(10)
@@ -263,6 +267,141 @@ class FormController extends Controller
             return response()->json([
                 'success' => false,
                 'error' => 'Failed to add location: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete a bar bending form location.
+     */
+    public function deleteLocation(BarBendingFormLocation $location): JsonResponse
+    {
+        try {
+            $location->delete();
+            return response()->json([
+                'success' => true,
+                'message' => 'Item deleted successfully.',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to delete item: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get all formulas grouped by location_name.
+     */
+    public function getFormulas(): JsonResponse
+    {
+        try {
+            $formulas = $this->formulaService->getFormulasGroupedByLocation();
+            return response()->json($formulas);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to fetch formulas: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Store a new formula.
+     */
+    public function storeFormula(Request $request): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'location_name' => 'required|string|max:255',
+                'formula' => 'required|string',
+            ]);
+
+            $formula = $this->formulaService->storeFormula(
+                $validated['location_name'],
+                $validated['formula']
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Formula created successfully.',
+                'formula' => [
+                    'id' => $formula->id,
+                    'location_name' => $formula->location_name,
+                    'formula' => $formula->formula,
+                    'created_at' => $formula->created_at,
+                ]
+            ], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to create formula: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Update an existing formula.
+     */
+    public function updateFormula(Request $request, Formula $formula): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'location_name' => 'required|string|max:255',
+                'formula' => 'required|string',
+            ]);
+
+            $formula = $this->formulaService->updateFormula(
+                $formula,
+                $validated['location_name'],
+                $validated['formula']
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Formula updated successfully.',
+                'formula' => [
+                    'id' => $formula->id,
+                    'location_name' => $formula->location_name,
+                    'formula' => $formula->formula,
+                    'created_at' => $formula->created_at,
+                ]
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to update formula: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete a formula.
+     */
+    public function deleteFormula(Formula $formula): JsonResponse
+    {
+        try {
+            $this->formulaService->deleteFormula($formula);
+            return response()->json([
+                'success' => true,
+                'message' => 'Formula deleted successfully.',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to delete formula: ' . $e->getMessage(),
             ], 500);
         }
     }

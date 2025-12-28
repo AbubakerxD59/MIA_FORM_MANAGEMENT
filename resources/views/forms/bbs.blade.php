@@ -22,6 +22,28 @@
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 
+    <!-- jQuery UI for autocomplete -->
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/ui-lightness/jquery-ui.css">
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+
+    <!-- MathJax for beautiful formula rendering -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [
+                    ['$', '$'],
+                    ['\\(', '\\)']
+                ],
+                displayMath: [
+                    ['$$', '$$'],
+                    ['\\[', '\\]']
+                ]
+            }
+        };
+    </script>
+
     <style>
         .field-row {
             transition: background-color 0.2s;
@@ -102,7 +124,7 @@
         </header>
 
         <!-- Main Content -->
-        <main class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
+        <main class="mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
             <!-- Success Message -->
             @if (session('success'))
                 <div
@@ -150,10 +172,10 @@
                     <div
                         class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 sticky top-4">
                         <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 text-center">
-                            Related Items
+                            Related Floors
                         </h2>
 
-                        <!-- Add Item Button -->
+                        <!-- Add Floor Button -->
                         <div class="mb-4">
                             <button type="button" id="addItemBtn"
                                 class="w-full inline-flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition-colors duration-200">
@@ -161,7 +183,7 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M12 4v16m8-8H4"></path>
                                 </svg>
-                                Add Item
+                                Add Floor
                             </button>
                         </div>
 
@@ -183,7 +205,7 @@
                                             <button type="button"
                                                 onclick="event.stopPropagation(); confirmDeleteItem({{ $barBendingFormItem->id }}, '{{ addslashes($barBendingFormItem->name ?: 'No Name') }}')"
                                                 class="ml-2 p-1.5 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
-                                                title="Delete item">
+                                                title="Delete floor">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor"
                                                     viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round"
@@ -198,7 +220,7 @@
                             @else
                                 <div id="emptySidebarMessage" class="text-center py-8">
                                     <p class="text-sm text-gray-500 dark:text-gray-400">
-                                        No items found.
+                                        No floors found.
                                     </p>
                                 </div>
                             @endif
@@ -250,22 +272,22 @@
                                 </svg>
                                 <div>
                                     <h3 class="text-sm font-semibold text-blue-900 dark:text-blue-200 mb-1">
-                                        Select an Item to Edit
+                                        Select a Floor to Edit
                                     </h3>
                                     <p class="text-sm text-blue-800 dark:text-blue-300">
-                                        Please select an item from the sidebar to edit it, or click on the <strong>"Add
-                                            Item"</strong> button in the sidebar to create a new item.
+                                        Please select a floor from the sidebar to edit it, or click on the <strong>"Add
+                                            Floor"</strong> button in the sidebar to create a new floor.
                                     </p>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Item Section (for adding new bar bending form items) -->
+                        <!-- Floor Section (for adding new bar bending form floors) -->
                         <div id="itemSection" class="hidden">
                             <div
                                 class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                                 <div class="mb-4">
-                                    <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Item</h2>
+                                    <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Floor</h2>
                                     <div class="max-w-md">
                                         <label for="bar_bending_item_name"
                                             class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -273,11 +295,11 @@
                                         </label>
                                         <div class="flex gap-2">
                                             <input type="text" id="bar_bending_item_name"
-                                                name="bar_bending_item_name" placeholder="Enter item name" required
+                                                name="bar_bending_item_name" placeholder="Enter floor name" required
                                                 class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
                                             <button type="button" id="saveItemNameBtnAdd"
                                                 class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition-colors duration-200 whitespace-nowrap">
-                                                Save Item
+                                                Save Floor
                                             </button>
                                         </div>
                                     </div>
@@ -285,7 +307,7 @@
                             </div>
                         </div>
 
-                        <!-- Location Name and Item Name Fields (shown when item is selected) -->
+                        <!-- Item Name and Floor Name Fields (shown when floor is selected) -->
                         <div id="itemNameField" class="hidden">
                             <div
                                 class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
@@ -293,30 +315,30 @@
                                     <div>
                                         <label for="fields_item_name"
                                             class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                            Item Name
+                                            Floor Name
                                         </label>
                                         <div class="flex gap-2">
                                             <input type="text" id="fields_item_name" name="fields_item_name"
-                                                placeholder="Enter item name"
+                                                placeholder="Enter floor name"
                                                 class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
                                             <button type="button" id="saveItemNameBtn"
                                                 class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition-colors duration-200 whitespace-nowrap">
-                                                Save Item
+                                                Save Floor
                                             </button>
                                         </div>
                                     </div>
                                     <div>
                                         <label for="fields_location_name"
                                             class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                            Location Name
+                                            Item Name
                                         </label>
                                         <div class="flex gap-2 relative">
                                             <input type="text" id="fields_location_name"
-                                                name="fields_location_name" placeholder="Enter location name"
+                                                name="fields_location_name" placeholder="Enter item name"
                                                 class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
                                             <button type="button" id="addLocationBtn"
                                                 class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition-colors duration-200 whitespace-nowrap">
-                                                Add Location
+                                                Add Item
                                             </button>
                                         </div>
 
@@ -325,22 +347,23 @@
                             </div>
                         </div>
 
-                        <!-- Location Details Table (shown when location is active) -->
+                        <!-- Item Details Table (shown when item is active) -->
                         <div id="locationDetailsTable" class="hidden">
                             <div
                                 class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
-                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Location Details
-                                </h3>
                                 <div class="overflow-x-auto">
                                     <table class="w-full">
                                         <thead>
                                             <tr class="bg-gray-100 dark:bg-gray-700">
                                                 <th
                                                     class="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                                                    Span</th>
+                                                    Location</th>
                                                 <th
                                                     class="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                                                     Number</th>
+                                                <th
+                                                    class="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                                    Length</th>
                                                 <th
                                                     class="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                                                     Width</th>
@@ -349,10 +372,7 @@
                                                     Height</th>
                                                 <th
                                                     class="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                                                    Length</th>
-                                                <th
-                                                    class="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                                                    No. of Unit</th>
+                                                    T. Qty</th>
                                                 <th
                                                     class="px-4 py-3 text-center text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider w-20">
                                                     Action</th>
@@ -367,10 +387,85 @@
                         </div>
                     </form>
                 </div>
+
+                <!-- Right Sidebar - Formulas -->
+                <aside class="w-80 flex-shrink-0">
+                    <div
+                        class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 sticky top-4">
+                        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 text-center">
+                            Formulas
+                        </h2>
+
+                        <!-- Add Formula Button -->
+                        <div class="mb-4">
+                            <button type="button" id="addFormulaBtn"
+                                class="w-full inline-flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition-colors duration-200">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 4v16m8-8H4"></path>
+                                </svg>
+                                Add Formula
+                            </button>
+                        </div>
+
+                        <div id="formulasList" class="space-y-4 max-h-[calc(100vh-300px)] overflow-y-auto">
+                            <!-- Formulas will be loaded via JavaScript -->
+                            <div class="text-center py-8">
+                                <p class="text-sm text-gray-500 dark:text-gray-400">
+                                    Loading formulas...
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- New Formula Input Section (hidden by default) -->
+                        <div id="newFormulaSection"
+                            class="hidden mt-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
+                            <h3 id="formulaSectionTitle"
+                                class="text-sm font-semibold text-gray-900 dark:text-white mb-3">New Formula</h3>
+                            <input type="hidden" id="editingFormulaId" value="">
+
+                            <div class="mb-3">
+                                <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Location Name
+                                </label>
+                                <input type="text" id="newFormulaLocationName" placeholder="Enter location name"
+                                    class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Formula
+                                    <span class="text-xs text-gray-500 dark:text-gray-400 ml-1">(Type column names like
+                                        DIA, LENGTH, HEIGHT, etc.)</span>
+                                </label>
+                                <textarea id="newFormulaText" rows="3" placeholder="e.g., Number * Length * Width * Height"
+                                    class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white font-mono"></textarea>
+                                <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                    Preview:
+                                    <div id="formulaPreview"
+                                        class="mt-1 p-2 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600 min-h-[40px]">
+                                        <span class="text-gray-400">Formula preview will appear here...</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex gap-2">
+                                <button type="button" id="saveFormulaBtn"
+                                    class="flex-1 px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-200">
+                                    Save
+                                </button>
+                                <button type="button" id="cancelFormulaBtn"
+                                    class="flex-1 px-3 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-200">
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </aside>
             </div>
         </main>
 
-        <!-- Delete Item Confirmation Modal -->
+        <!-- Delete Floor Confirmation Modal -->
         <div id="deleteItemModal"
             class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
             <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full transform transition-all">
@@ -388,7 +483,7 @@
                         <h3 class="ml-4 text-xl font-bold text-gray-900 dark:text-white">Confirm Delete</h3>
                     </div>
                     <p class="text-gray-600 dark:text-gray-300 mb-6" id="deleteItemModalMessage">
-                        Are you sure you want to delete this item? This action cannot be undone and all associated
+                        Are you sure you want to delete this floor? This action cannot be undone and all associated
                         fields will be deleted.
                     </p>
                     <div class="flex justify-end space-x-3">
@@ -408,7 +503,7 @@
         <!-- Fixed Form Actions -->
         <div
             class="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-lg z-50">
-            <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="mx-auto px-4 sm:px-6 lg:px-8 py-4">
                 <div class="flex items-center justify-center space-x-4">
                     <button type="button" id="addSpanBtn"
                         class="hidden px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition-colors duration-200 flex items-center gap-2">
@@ -416,7 +511,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4">
                             </path>
                         </svg>
-                        <span>Add Span</span>
+                        <span>Add Location</span>
                     </button>
                     <a href="{{ route('forms.index') }}"
                         class="px-6 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
@@ -435,6 +530,7 @@
         let fieldIndex = 30;
         let currentItemId = null;
         let currentLocationId = null;
+        let currentFormulaId = null;
         const currentFormId = {{ $form->id }};
 
         // Handle sidebar item clicks
@@ -442,10 +538,36 @@
             // Delegate click handler for sidebar items (works for dynamically added items)
             // Note: Click handling is now done via onclick in the item div to allow delete button clicks
 
-            // Handle Add Item button click
+            // Handle Add Floor button click
             $('#addItemBtn').on('click', function() {
                 loadEmptyBarBendingItem();
             });
+
+            // Handle Add Formula button click
+            $('#addFormulaBtn').on('click', function() {
+                showNewFormulaSection();
+            });
+
+            // Handle Cancel Formula button
+            $('#cancelFormulaBtn').on('click', function() {
+                hideNewFormulaSection();
+            });
+
+            // Handle Save Formula button
+            $('#saveFormulaBtn').on('click', function() {
+                saveFormula();
+            });
+
+            // Setup autocomplete for formula input
+            setupFormulaAutocomplete();
+
+            // Update formula preview on input
+            $('#newFormulaText').on('input', function() {
+                updateFormulaPreview();
+            });
+
+            // Load formulas on page load
+            loadFormulas();
 
             // Handle Save Bar Bending Item button click
             $('#saveBarBendingItemBtn').on('click', function() {
@@ -546,10 +668,10 @@
                             </svg>
                             <div>
                                 <h3 class="text-sm font-semibold text-red-900 dark:text-red-200 mb-1">
-                                    Error Loading Item
+                                    Error Loading Floor
                                 </h3>
                                 <p class="text-sm text-red-800 dark:text-red-300">
-                                    Failed to load item details. Please try again.
+                                    Failed to load floor details. Please try again.
                                 </p>
                             </div>
                         </div>
@@ -663,6 +785,32 @@
             }
         }
 
+        // Calculate T. Qty for location details table
+        function calculateTQty(input) {
+            const row = input.closest('tr');
+            const numberInput = row.querySelector('input[name*="[number]"]');
+            const lengthInput = row.querySelector('input[name*="[length]"]');
+            const widthInput = row.querySelector('input[name*="[width]"]');
+            const heightInput = row.querySelector('input[name*="[height]"]');
+            const tQtyInput = row.querySelector('input[name*="[no_of_units]"]');
+
+            // Get values, treat empty or 0 as 1
+            const number = parseFloat(numberInput.value) || 0;
+            const length = parseFloat(lengthInput.value) || 0;
+            const width = parseFloat(widthInput.value) || 0;
+            const height = parseFloat(heightInput.value) || 0;
+
+            // If any value is empty or 0, treat it as 1
+            const num = (number === 0 || isNaN(number)) ? 1 : number;
+            const len = (length === 0 || isNaN(length)) ? 1 : length;
+            const wid = (width === 0 || isNaN(width)) ? 1 : width;
+            const hei = (height === 0 || isNaN(height)) ? 1 : height;
+
+            // Calculate T. Qty: number * length * width * height
+            const tQty = num * len * wid * hei;
+            tQtyInput.value = tQty.toFixed(2);
+        }
+
         function loadEmptyBarBendingItem() {
             currentItemId = null;
             currentLocationId = null;
@@ -690,7 +838,7 @@
             const itemName = $('#bar_bending_item_name').val().trim();
 
             if (!itemName) {
-                alert('Please enter an item name');
+                alert('Please enter a floor name');
                 return;
             }
 
@@ -724,7 +872,7 @@
                     refreshSidebar();
 
                     // Show success message
-                    showSuccessMessage('Bar bending form item created successfully!');
+                    showSuccessMessage('Bar bending form floor created successfully!');
                 },
                 error: function(xhr) {
                     saveBtn.prop('disabled', false).text(originalText);
@@ -811,12 +959,12 @@
                         // Refresh sidebar to include new item
                         refreshSidebar(null, null);
                         // Show success message
-                        showSuccessMessage('Item created successfully!');
+                        showSuccessMessage('Floor created successfully!');
                     } else {
                         // Refresh sidebar to show updated item name
                         refreshSidebar(currentItemId, currentLocationId);
                         // Show success message
-                        showSuccessMessage(response.message || 'Item updated successfully!');
+                        showSuccessMessage(response.message || 'Floor updated successfully!');
                     }
                 },
                 error: function(xhr) {
@@ -883,11 +1031,21 @@
                                     'text-gray-700 dark:text-gray-300 hover:bg-blue-100 dark:hover:bg-blue-900/30';
 
                                 locationsHtml += `
-                                    <li class="location-submenu-item cursor-pointer text-xs pl-4 py-1.5 rounded transition-colors ${locationBgClass}"
+                                    <li class="location-submenu-item flex items-center justify-between group text-xs pl-4 py-1.5 rounded transition-colors ${locationBgClass}"
                                         data-location-id="${location.id}"
                                         data-location-name="${location.name.replace(/'/g, "\\'")}"
-                                        onclick="event.stopPropagation(); loadLocation(${location.id}, '${location.name.replace(/'/g, "\\'")}')">
-                                        ${location.name}
+                                        data-form-location-id="${location.form_location_id}">
+                                        <span class="flex-1 cursor-pointer" onclick="event.stopPropagation(); loadLocation(${location.id}, '${location.name.replace(/'/g, "\\'")}')">
+                                            ${location.name}
+                                        </span>
+                                        <button type="button"
+                                            onclick="event.stopPropagation(); confirmDeleteLocation(${location.form_location_id}, '${location.name.replace(/'/g, "\\'")}')"
+                                            class="ml-2 p-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors group-hover:opacity-100"
+                                            title="Delete item">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                            </svg>
+                                        </button>
                                     </li>
                                 `;
                             });
@@ -897,7 +1055,7 @@
                             locationsHtml =
                                 '<div class="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">';
                             locationsHtml +=
-                                '<p class="text-xs text-gray-500 dark:text-gray-400 italic pl-4">No locations added</p>';
+                                '<p class="text-xs text-gray-500 dark:text-gray-400 italic pl-4">No items added</p>';
                             locationsHtml += '</div>';
                         }
 
@@ -988,15 +1146,15 @@
                     'Accept': 'application/json'
                 },
                 success: function(items) {
-                    select.html('<option value="">-- Select an item --</option>');
+                    select.html('<option value="">-- Select a floor --</option>');
 
                     if (items.length === 0) {
-                        select.html('<option value="">No items available</option>');
+                        select.html('<option value="">No floors available</option>');
                         return;
                     }
 
                     items.forEach(function(item) {
-                        const itemName = item.item_name || 'No Item Name';
+                        const itemName = item.item_name || 'No Floor Name';
                         const option = $('<option></option>')
                             .attr('value', item.id)
                             .text(itemName);
@@ -1004,7 +1162,7 @@
                     });
                 },
                 error: function() {
-                    select.html('<option value="">Error loading items</option>');
+                    select.html('<option value="">Error loading floors</option>');
                     console.error('Failed to load sidebar items for duplicate');
                 }
             });
@@ -1060,7 +1218,7 @@
                 },
                 error: function(xhr) {
                     duplicateButton.prop('disabled', false).text(originalText);
-                    alert('Failed to load fields from selected item. Please try again.');
+                    alert('Failed to load fields from selected floor. Please try again.');
                     console.error('Error loading form fields:', xhr);
                 }
             });
@@ -1068,7 +1226,7 @@
 
         function addFieldRow() {
             if (!currentItemId) {
-                alert('Please select an item first or click "Add Item"');
+                alert('Please select a floor first or click "Add Floor"');
                 return;
             }
 
@@ -1232,15 +1390,17 @@
                 });
         });
 
-        // Delete item functionality
+        // Delete floor functionality
         let itemToDeleteId = null;
+        let locationToDeleteId = null;
 
         function confirmDeleteItem(formId, itemName) {
             itemToDeleteId = formId;
+            locationToDeleteId = null; // Clear location delete when floor delete is triggered
             const modal = document.getElementById('deleteItemModal');
             const message = document.getElementById('deleteItemModalMessage');
             message.textContent =
-                `Are you sure you want to delete the item "${itemName}"? This action cannot be undone and all associated fields will be deleted.`;
+                `Are you sure you want to delete the floor "${itemName}"? This action cannot be undone and all associated fields will be deleted.`;
 
             modal.classList.remove('hidden');
             modal.classList.add('flex');
@@ -1249,7 +1409,23 @@
             }, 10);
         }
 
-        // Cancel delete item
+        // Delete item functionality (items under floors)
+        function confirmDeleteLocation(formLocationId, locationName) {
+            locationToDeleteId = formLocationId;
+            itemToDeleteId = null; // Clear floor delete when location delete is triggered
+            const modal = document.getElementById('deleteItemModal');
+            const message = document.getElementById('deleteItemModalMessage');
+            message.textContent =
+                `Are you sure you want to delete the item "${locationName}"? This action cannot be undone and all associated data will be deleted.`;
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => {
+                modal.querySelector('div').classList.add('scale-100');
+            }, 10);
+        }
+
+        // Cancel delete (for both floor and item)
         document.getElementById('cancelDeleteItem').addEventListener('click', function() {
             const modal = document.getElementById('deleteItemModal');
             modal.querySelector('div').classList.remove('scale-100');
@@ -1257,10 +1433,11 @@
                 modal.classList.add('hidden');
                 modal.classList.remove('flex');
                 itemToDeleteId = null;
+                locationToDeleteId = null;
             }, 200);
         });
 
-        // Close modal on outside click
+        // Close modal on outside click (for both floor and item)
         document.getElementById('deleteItemModal').addEventListener('click', function(e) {
             if (e.target === this) {
                 this.querySelector('div').classList.remove('scale-100');
@@ -1268,80 +1445,134 @@
                     this.classList.add('hidden');
                     this.classList.remove('flex');
                     itemToDeleteId = null;
+                    locationToDeleteId = null;
                 }, 200);
             }
         });
 
-        // Confirm delete item
+        // Confirm delete (handles both floor and item deletion)
         document.getElementById('confirmDeleteItem').addEventListener('click', function() {
-            if (!itemToDeleteId) {
-                return;
-            }
-
             const confirmBtn = this;
             const originalText = confirmBtn.textContent;
             confirmBtn.disabled = true;
             confirmBtn.textContent = 'Deleting...';
 
-            $.ajax({
-                url: `/api/bar-bending-form-items/${itemToDeleteId}`,
-                method: 'DELETE',
-                data: {
-                    _token: $('meta[name="csrf-token"]').attr('content')
-                },
-                headers: {
-                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Accept': 'application/json'
-                },
-                success: function(response) {
-                    const modal = document.getElementById('deleteItemModal');
-                    modal.querySelector('div').classList.remove('scale-100');
-                    setTimeout(() => {
-                        modal.classList.add('hidden');
-                        modal.classList.remove('flex');
-                    }, 200);
+            if (locationToDeleteId) {
+                // Delete location (item under floor)
+                $.ajax({
+                    url: `/api/bar-bending-form-locations/${locationToDeleteId}`,
+                    method: 'DELETE',
+                    data: {
+                        _token: $('meta[name="csrf-token"]').attr('content')
+                    },
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    },
+                    success: function(response) {
+                        const modal = document.getElementById('deleteItemModal');
+                        modal.querySelector('div').classList.remove('scale-100');
+                        setTimeout(() => {
+                            modal.classList.add('hidden');
+                            modal.classList.remove('flex');
+                        }, 200);
 
-                    // Refresh sidebar
-                    refreshSidebar(null, null);
+                        // Refresh sidebar but keep the floor selected
+                        refreshSidebar(currentItemId, null);
 
-                    // If the deleted item was currently being edited, clear the form
-                    if (currentItemId === itemToDeleteId) {
-                        currentItemId = null;
+                        // If the deleted location was currently active, clear it
                         currentLocationId = null;
-                        $('#messageSection').removeClass('hidden');
-                        $('#itemNameField').addClass('hidden');
+                        $('#fields_location_name').val('');
+                        hideLocationDetailsTable();
+
+                        // Show success message
+                        showSuccessMessage(response.message || 'Item deleted successfully!');
+
+                        locationToDeleteId = null;
+                        confirmBtn.disabled = false;
+                        confirmBtn.textContent = originalText;
+                    },
+                    error: function(xhr) {
+                        confirmBtn.disabled = false;
+                        confirmBtn.textContent = originalText;
+
+                        let errorMessage = 'Failed to delete item. Please try again.';
+                        if (xhr.responseJSON && xhr.responseJSON.error) {
+                            errorMessage = xhr.responseJSON.error;
+                        } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMessage = xhr.responseJSON.message;
+                        }
+
+                        alert(errorMessage);
+                        console.error('Error deleting location:', xhr);
                     }
+                });
+            } else if (itemToDeleteId) {
+                // Delete floor
+                $.ajax({
+                    url: `/api/bar-bending-form-items/${itemToDeleteId}`,
+                    method: 'DELETE',
+                    data: {
+                        _token: $('meta[name="csrf-token"]').attr('content')
+                    },
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    },
+                    success: function(response) {
+                        const modal = document.getElementById('deleteItemModal');
+                        modal.querySelector('div').classList.remove('scale-100');
+                        setTimeout(() => {
+                            modal.classList.add('hidden');
+                            modal.classList.remove('flex');
+                        }, 200);
 
-                    // Show success message
-                    showSuccessMessage('Item deleted successfully!');
+                        // Refresh sidebar
+                        refreshSidebar(null, null);
 
-                    itemToDeleteId = null;
-                    confirmBtn.disabled = false;
-                    confirmBtn.textContent = originalText;
-                },
-                error: function(xhr) {
-                    confirmBtn.disabled = false;
-                    confirmBtn.textContent = originalText;
+                        // If the deleted item was currently being edited, clear the form
+                        if (currentItemId === itemToDeleteId) {
+                            currentItemId = null;
+                            currentLocationId = null;
+                            $('#messageSection').removeClass('hidden');
+                            $('#itemNameField').addClass('hidden');
+                        }
 
-                    let errorMessage = 'Failed to delete item. Please try again.';
-                    if (xhr.responseJSON && xhr.responseJSON.error) {
-                        errorMessage = xhr.responseJSON.error;
-                    } else if (xhr.responseJSON && xhr.responseJSON.message) {
-                        errorMessage = xhr.responseJSON.message;
+                        // Show success message
+                        showSuccessMessage('Floor deleted successfully!');
+
+                        itemToDeleteId = null;
+                        confirmBtn.disabled = false;
+                        confirmBtn.textContent = originalText;
+                    },
+                    error: function(xhr) {
+                        confirmBtn.disabled = false;
+                        confirmBtn.textContent = originalText;
+
+                        let errorMessage = 'Failed to delete floor. Please try again.';
+                        if (xhr.responseJSON && xhr.responseJSON.error) {
+                            errorMessage = xhr.responseJSON.error;
+                        } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMessage = xhr.responseJSON.message;
+                        }
+
+                        alert(errorMessage);
+                        console.error('Error deleting item:', xhr);
                     }
-
-                    alert(errorMessage);
-                    console.error('Error deleting item:', xhr);
-                }
-            });
+                });
+            } else {
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = originalText;
+            }
         });
 
-        // Save Item Name button handler (for Fields section - only works when item is active)
+        // Save Floor Name button handler (for Fields section - only works when floor is active)
         document.getElementById('saveItemNameBtn').addEventListener('click', function() {
             // Only allow saving when an item is active from sidebar
             if (!currentItemId) {
-                alert('Please select an item from the sidebar first');
+                alert('Please select a floor from the sidebar first');
                 return;
             }
 
@@ -1349,7 +1580,7 @@
             const formId = {{ $form->id }};
 
             if (!itemName) {
-                alert('Please enter an item name');
+                alert('Please enter a floor name');
                 return;
             }
 
@@ -1385,13 +1616,13 @@
                         loadBarBendingItem(itemIdToReselect);
                     });
 
-                    showSuccessMessage(response.message || 'Item name saved successfully!');
+                    showSuccessMessage(response.message || 'Floor name saved successfully!');
                 },
                 error: function(xhr) {
                     saveBtn.disabled = false;
                     saveBtn.textContent = originalText;
 
-                    let errorMessage = 'Failed to save item name. Please try again.';
+                    let errorMessage = 'Failed to save floor name. Please try again.';
                     if (xhr.responseJSON && xhr.responseJSON.error) {
                         errorMessage = xhr.responseJSON.error;
                     } else if (xhr.responseJSON && xhr.responseJSON.message) {
@@ -1399,18 +1630,18 @@
                     }
 
                     alert(errorMessage);
-                    console.error('Error saving item name:', xhr);
+                    console.error('Error saving floor name:', xhr);
                 }
             });
         });
 
-        // Save Item Name button handler for Add Item section
+        // Save Floor Name button handler for Add Floor section
         document.getElementById('saveItemNameBtnAdd').addEventListener('click', function() {
             const itemName = $('#bar_bending_item_name').val().trim();
             const formId = {{ $form->id }};
 
             if (!itemName) {
-                alert('Please enter an item name');
+                alert('Please enter a floor name');
                 return;
             }
 
@@ -1442,13 +1673,13 @@
                     // Refresh sidebar to show the new item
                     refreshSidebar();
 
-                    showSuccessMessage(response.message || 'Item name saved successfully!');
+                    showSuccessMessage(response.message || 'Floor name saved successfully!');
                 },
                 error: function(xhr) {
                     saveBtn.disabled = false;
                     saveBtn.textContent = originalText;
 
-                    let errorMessage = 'Failed to save item name. Please try again.';
+                    let errorMessage = 'Failed to save floor name. Please try again.';
                     if (xhr.responseJSON && xhr.responseJSON.error) {
                         errorMessage = xhr.responseJSON.error;
                     } else if (xhr.responseJSON && xhr.responseJSON.message) {
@@ -1456,12 +1687,12 @@
                     }
 
                     alert(errorMessage);
-                    console.error('Error saving item name:', xhr);
+                    console.error('Error saving floor name:', xhr);
                 }
             });
         });
 
-        // Location Name Autocomplete
+        // Item Name Autocomplete
         let locationAutocompleteTimeout;
         let locationAutocompleteList = null;
 
@@ -1568,7 +1799,7 @@
         document.getElementById('addLocationBtn').addEventListener('click', function() {
             // Only allow adding location when an item is active from sidebar
             if (!currentItemId) {
-                alert('Please select an item from the sidebar first');
+                alert('Please select a floor from the sidebar first');
                 return;
             }
 
@@ -1576,7 +1807,7 @@
             const formId = {{ $form->id }};
 
             if (!locationName) {
-                alert('Please enter a location name');
+                alert('Please enter an item name');
                 return;
             }
 
@@ -1603,30 +1834,24 @@
                     addBtn.disabled = false;
                     addBtn.textContent = originalText;
 
-                    // Set the newly added location as active
-                    if (response.location && response.location.id) {
-                        currentLocationId = response.location.id;
-                        // Set the location name in the input field
-                        $('#fields_location_name').val(response.location.name);
-                        $('#fields_location_name').data('location-id', response.location.id);
+                    // Clear the item name input field so user can add another item
+                    $('#fields_location_name').val('');
+                    $('#fields_location_name').data('location-id', null);
 
-                        // Show location details table
-                        showLocationDetailsTable();
-                    } else {
-                        // Clear the location name input if no location was returned
-                        $('#fields_location_name').val('');
-                    }
+                    // Don't set the newly added item as active - keep the floor selected
+                    // Don't show location details table - let user add more items first
+                    // Keep currentLocationId as null so no item is selected
 
-                    // Refresh sidebar to show the new location in submenu and make it active
-                    refreshSidebar(currentItemId, currentLocationId);
+                    // Refresh sidebar to show the new item in submenu but keep the floor selected (not the new item)
+                    refreshSidebar(currentItemId, null);
 
-                    showSuccessMessage(response.message || 'Location added successfully!');
+                    showSuccessMessage(response.message || 'Item added successfully!');
                 },
                 error: function(xhr) {
                     addBtn.disabled = false;
                     addBtn.textContent = originalText;
 
-                    let errorMessage = 'Failed to add location. Please try again.';
+                    let errorMessage = 'Failed to add item. Please try again.';
                     if (xhr.responseJSON && xhr.responseJSON.message) {
                         errorMessage = xhr.responseJSON.message;
                     } else if (xhr.responseJSON && xhr.responseJSON.error) {
@@ -1668,7 +1893,7 @@
             // Create 10 default rows with child tables
             for (let i = 0; i < 10; i++) {
                 const row = `
-                    <tr class="border-b border-gray-200 dark:border-gray-700 parent-row" data-row-index="${i}">
+                    <tr class="border-b border-gray-200 dark:border-gray-700 parent-row cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" data-row-index="${i}">
                         <td class="px-4 py-3">
                             <div class="flex items-center gap-2">
                                 <button type="button" 
@@ -1681,7 +1906,7 @@
                                 </button>
                                 <input type="text" 
                                        name="location_details[${i}][span]"
-                                       placeholder="Enter span"
+                                       placeholder="Enter location"
                                        class="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
                             </div>
                         </td>
@@ -1690,22 +1915,7 @@
                                    name="location_details[${i}][number]"
                                    step="1"
                                    placeholder="0"
-                                   class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
-                        </td>
-                        <td class="px-4 py-3">
-                            <input type="number" 
-                                   name="location_details[${i}][width]"
-                                   step="0.01"
-                                   min="0"
-                                   placeholder="0.00"
-                                   class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
-                        </td>
-                        <td class="px-4 py-3">
-                            <input type="number" 
-                                   name="location_details[${i}][height]"
-                                   step="0.01"
-                                   min="0"
-                                   placeholder="0.00"
+                                   oninput="calculateTQty(this)"
                                    class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
                         </td>
                         <td class="px-4 py-3">
@@ -1714,21 +1924,40 @@
                                    step="0.01"
                                    min="0"
                                    placeholder="0.00"
+                                   oninput="calculateTQty(this)"
+                                   class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
+                        </td>
+                        <td class="px-4 py-3">
+                            <input type="number" 
+                                   name="location_details[${i}][width]"
+                                   step="0.01"
+                                   min="0"
+                                   placeholder="0.00"
+                                   oninput="calculateTQty(this)"
+                                   class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
+                        </td>
+                        <td class="px-4 py-3">
+                            <input type="number" 
+                                   name="location_details[${i}][height]"
+                                   step="0.01"
+                                   min="0"
+                                   placeholder="0.00"
+                                   oninput="calculateTQty(this)"
                                    class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
                         </td>
                     <td class="px-4 py-3">
                         <input type="number" 
                                name="location_details[${i}][no_of_units]"
-                               step="1"
-                               min="0"
-                               placeholder="0"
-                               class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
+                               step="0.01"
+                               readonly
+                               placeholder="0.00"
+                               class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-600 text-gray-700 dark:text-gray-300 cursor-not-allowed">
                     </td>
                     <td class="px-4 py-3">
                         <button type="button" 
                                 class="delete-span-btn w-8 h-8 flex items-center justify-center text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
                                 data-row-index="${i}"
-                                title="Delete span">
+                                title="Delete location">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                             </svg>
@@ -1741,23 +1970,16 @@
                                 <table class="w-full text-xs border border-gray-300 dark:border-gray-600">
                                     <thead>
                                         <tr class="bg-gray-200 dark:bg-gray-700">
-                                            <th class="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600">CHILD SPAN</th>
-                                            <th class="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600">SPACING</th>
-                                            <th class="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600">DIA</th>
-                                            <th class="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600">NO OF UNIT</th>
-                                            <th class="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600">NO PER UNIT</th>
-                                            <th class="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600">TOTAL NO</th>
-                                            <th class="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600">CUT LENGTH</th>
+                                            <th rowspan="2" class="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600">LOCATION</th>
+                                            <th rowspan="2" class="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600">SPACING</th>
+                                            <th rowspan="2" class="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600">DIA</th>
+                                            <th rowspan="2" class="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600">NO OF UNIT</th>
+                                            <th rowspan="2" class="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600">NO PER UNIT</th>
+                                            <th rowspan="2" class="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600">TOTAL NO</th>
+                                            <th rowspan="2" class="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600">CUT LENGTH</th>
                                             <th class="px-2 py-2 text-center font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600" colspan="5">TOTAL LENGTH</th>
                                         </tr>
                                         <tr class="bg-gray-200 dark:bg-gray-700">
-                                            <th class="px-2 py-1 border border-gray-300 dark:border-gray-600"></th>
-                                            <th class="px-2 py-1 border border-gray-300 dark:border-gray-600"></th>
-                                            <th class="px-2 py-1 border border-gray-300 dark:border-gray-600"></th>
-                                            <th class="px-2 py-1 border border-gray-300 dark:border-gray-600"></th>
-                                            <th class="px-2 py-1 border border-gray-300 dark:border-gray-600"></th>
-                                            <th class="px-2 py-1 border border-gray-300 dark:border-gray-600"></th>
-                                            <th class="px-2 py-1 border border-gray-300 dark:border-gray-600"></th>
                                             <th class="px-2 py-1 text-center text-xs font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600">3/8"<br><span class="text-xs">10</span></th>
                                             <th class="px-2 py-1 text-center text-xs font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600">1/2"<br><span class="text-xs">12</span></th>
                                             <th class="px-2 py-1 text-center text-xs font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600">5/8"<br><span class="text-xs">16</span></th>
@@ -1792,7 +2014,7 @@
                         <td class="px-2 py-2 border border-gray-300 dark:border-gray-600">
                             <input type="text" 
                                    name="location_details[${i}][child_rows][${j}][location]"
-                                   placeholder="Child Span"
+                                   placeholder="Location"
                                    class="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
                         </td>
                         <td class="px-2 py-2 border border-gray-300 dark:border-gray-600">
@@ -1878,45 +2100,87 @@
                 // Show the table
                 $('#locationDetailsTable').removeClass('hidden');
 
-                // Show floating Add Span button
+                // Show floating Add Location button
                 $('#addSpanBtn').removeClass('hidden');
 
                 // Attach toggle handlers to all toggle buttons
                 attachToggleHandlers();
+
+                // Calculate T. Qty for all existing rows
+                $('#locationDetailsTableBody .parent-row').each(function() {
+                    const numberInput = $(this).find('input[name*="[number]"]')[0];
+                    if (numberInput) {
+                        calculateTQty(numberInput);
+                    }
+                });
             }
         }
 
         // Attach toggle handlers to child table toggle buttons
         function attachToggleHandlers() {
+            // Handle toggle button click
             $(document).off('click', '.toggle-child-table-btn').on('click', '.toggle-child-table-btn', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
 
                 const rowIndex = $(this).data('row-index');
-                const childTableRow = $(`.child-table-row[data-row-index="${rowIndex}"]`);
-                const toggleIcon = $(this).find('.toggle-icon');
-
-                if (childTableRow.is(':visible')) {
-                    // Slide up (close)
-                    childTableRow.slideUp(300, function() {
-                        toggleIcon.css('transform', 'rotate(0deg)');
-                    });
-                } else {
-                    // Slide down (open)
-                    childTableRow.slideDown(300);
-                    toggleIcon.css('transform', 'rotate(180deg)');
-                }
+                toggleChildTable(rowIndex);
             });
+
+            // Handle parent row click (but not on input fields or buttons)
+            $(document).off('click', '.parent-row').on('click', '.parent-row', function(e) {
+                // Don't trigger if clicking on inputs, buttons, or links
+                if ($(e.target).is('input, button, a, .toggle-child-table-btn, .delete-span-btn') ||
+                    $(e.target).closest('input, button, a').length > 0) {
+                    return;
+                }
+
+                e.preventDefault();
+                e.stopPropagation();
+
+                const rowIndex = $(this).data('row-index');
+                toggleChildTable(rowIndex);
+            });
+        }
+
+        // Toggle child table - closes all others and opens the selected one
+        function toggleChildTable(rowIndex) {
+            const childTableRow = $(`.child-table-row[data-row-index="${rowIndex}"]`);
+            const toggleButton = $(`.toggle-child-table-btn[data-row-index="${rowIndex}"]`);
+            const toggleIcon = toggleButton.find('.toggle-icon');
+
+            if (childTableRow.is(':visible')) {
+                // Slide up (close)
+                childTableRow.slideUp(300, function() {
+                    toggleIcon.css('transform', 'rotate(0deg)');
+                });
+            } else {
+                // Close all other child tables first
+                $('.child-table-row').not(childTableRow).each(function() {
+                    const otherRowIndex = $(this).data('row-index');
+                    const otherToggleButton = $(`.toggle-child-table-btn[data-row-index="${otherRowIndex}"]`);
+                    const otherToggleIcon = otherToggleButton.find('.toggle-icon');
+
+                    if ($(this).is(':visible')) {
+                        $(this).slideUp(300);
+                        otherToggleIcon.css('transform', 'rotate(0deg)');
+                    }
+                });
+
+                // Slide down (open) the selected one
+                childTableRow.slideDown(300);
+                toggleIcon.css('transform', 'rotate(180deg)');
+            }
         }
 
         // Hide location details table
         function hideLocationDetailsTable() {
             $('#locationDetailsTable').addClass('hidden');
-            // Hide floating Add Span button
+            // Hide floating Add Location button
             $('#addSpanBtn').addClass('hidden');
         }
 
-        // Add a new parent row (span) to the location details table
+        // Add a new parent row (location) to the item details table
         function addNewSpanRow() {
             const tbody = $('#locationDetailsTableBody');
             const currentRowCount = tbody.find('.parent-row').length;
@@ -1924,7 +2188,7 @@
 
             // Create parent row with child table
             const row = `
-                <tr class="border-b border-gray-200 dark:border-gray-700 parent-row" data-row-index="${newRowIndex}">
+                <tr class="border-b border-gray-200 dark:border-gray-700 parent-row cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" data-row-index="${newRowIndex}">
                     <td class="px-4 py-3">
                         <div class="flex items-center gap-2">
                             <button type="button" 
@@ -1946,22 +2210,7 @@
                                name="location_details[${newRowIndex}][number]"
                                step="1"
                                placeholder="0"
-                               class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
-                    </td>
-                    <td class="px-4 py-3">
-                        <input type="number" 
-                               name="location_details[${newRowIndex}][width]"
-                               step="0.01"
-                               min="0"
-                               placeholder="0.00"
-                               class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
-                    </td>
-                    <td class="px-4 py-3">
-                        <input type="number" 
-                               name="location_details[${newRowIndex}][height]"
-                               step="0.01"
-                               min="0"
-                               placeholder="0.00"
+                               oninput="calculateTQty(this)"
                                class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
                     </td>
                     <td class="px-4 py-3">
@@ -1970,21 +2219,40 @@
                                step="0.01"
                                min="0"
                                placeholder="0.00"
+                               oninput="calculateTQty(this)"
+                               class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
+                    </td>
+                    <td class="px-4 py-3">
+                        <input type="number" 
+                               name="location_details[${newRowIndex}][width]"
+                               step="0.01"
+                               min="0"
+                               placeholder="0.00"
+                               oninput="calculateTQty(this)"
+                               class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
+                    </td>
+                    <td class="px-4 py-3">
+                        <input type="number" 
+                               name="location_details[${newRowIndex}][height]"
+                               step="0.01"
+                               min="0"
+                               placeholder="0.00"
+                               oninput="calculateTQty(this)"
                                class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
                     </td>
                     <td class="px-4 py-3">
                         <input type="number" 
                                name="location_details[${newRowIndex}][no_of_units]"
-                               step="1"
-                               min="0"
-                               placeholder="0"
-                               class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
+                               step="0.01"
+                               readonly
+                               placeholder="0.00"
+                               class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-600 text-gray-700 dark:text-gray-300 cursor-not-allowed">
                     </td>
                     <td class="px-4 py-3">
                         <button type="button" 
                                 class="delete-span-btn w-8 h-8 flex items-center justify-center text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
                                 data-row-index="${newRowIndex}"
-                                title="Delete span">
+                                title="Delete location">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                             </svg>
@@ -1997,23 +2265,16 @@
                             <table class="w-full text-xs border border-gray-300 dark:border-gray-600">
                                 <thead>
                                     <tr class="bg-gray-200 dark:bg-gray-700">
-                                        <th class="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600">LOCATION</th>
-                                        <th class="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600">SPACING</th>
-                                        <th class="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600">DIA</th>
-                                        <th class="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600">NO OF</th>
-                                        <th class="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600">NO PER</th>
-                                        <th class="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600">TOTAL NO</th>
-                                        <th class="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600">CUT LENGTH</th>
+                                        <th rowspan="2" class="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600">ITEM</th>
+                                        <th rowspan="2" class="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600">SPACING</th>
+                                        <th rowspan="2" class="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600">DIA</th>
+                                        <th rowspan="2" class="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600">NO OF</th>
+                                        <th rowspan="2" class="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600">NO PER</th>
+                                        <th rowspan="2" class="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600">TOTAL NO</th>
+                                        <th rowspan="2" class="px-2 py-2 text-left font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600">CUT LENGTH</th>
                                         <th class="px-2 py-2 text-center font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600" colspan="5">TOTAL LENGTH</th>
                                     </tr>
                                     <tr class="bg-gray-200 dark:bg-gray-700">
-                                        <th class="px-2 py-1 border border-gray-300 dark:border-gray-600"></th>
-                                        <th class="px-2 py-1 border border-gray-300 dark:border-gray-600"></th>
-                                        <th class="px-2 py-1 border border-gray-300 dark:border-gray-600"></th>
-                                        <th class="px-2 py-1 border border-gray-300 dark:border-gray-600"></th>
-                                        <th class="px-2 py-1 border border-gray-300 dark:border-gray-600"></th>
-                                        <th class="px-2 py-1 border border-gray-300 dark:border-gray-600"></th>
-                                        <th class="px-2 py-1 border border-gray-300 dark:border-gray-600"></th>
                                         <th class="px-2 py-1 text-center text-xs font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600">3/8"<br><span class="text-xs">10</span></th>
                                         <th class="px-2 py-1 text-center text-xs font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600">1/2"<br><span class="text-xs">12</span></th>
                                         <th class="px-2 py-1 text-center text-xs font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600">5/8"<br><span class="text-xs">16</span></th>
@@ -2133,15 +2394,22 @@
 
             // Re-attach toggle handlers to include the new button
             attachToggleHandlers();
+
+            // Calculate T. Qty for the new row
+            const newRow = $(`.parent-row[data-row-index="${newRowIndex}"]`);
+            const numberInput = newRow.find('input[name*="[number]"]')[0];
+            if (numberInput) {
+                calculateTQty(numberInput);
+            }
         }
 
-        // Handle Add Span button click
+        // Handle Add Location button click
         $(document).on('click', '#addSpanBtn', function(e) {
             e.preventDefault();
             addNewSpanRow();
         });
 
-        // Handle Delete Span button click
+        // Handle Delete Location button click
         $(document).on('click', '.delete-span-btn', function(e) {
             e.preventDefault();
             e.stopPropagation();
@@ -2152,7 +2420,7 @@
 
             // Show confirmation alert
             if (confirm(
-                    'Are you sure you want to delete this span and its child table? This action cannot be undone.'
+                    'Are you sure you want to delete this location and its child table? This action cannot be undone.'
                 )) {
                 // Remove both parent row and child table row
                 parentRow.fadeOut(300, function() {
@@ -2167,21 +2435,21 @@
             }
         });
 
-            // Add a new row to a child table
-            function addChildTableRow(rowIndex) {
-                const childTableBody = $(`#childTableBody_${rowIndex}`);
-                const currentRowCount = childTableBody.find('tr').length;
-                const newRowIndex = currentRowCount;
+        // Add a new row to a child table
+        function addChildTableRow(rowIndex) {
+            const childTableBody = $(`#childTableBody_${rowIndex}`);
+            const currentRowCount = childTableBody.find('tr').length;
+            const newRowIndex = currentRowCount;
 
-                // Use the rowIndex as the span index (parent row index)
-                const spanIndex = rowIndex;
+            // Use the rowIndex as the span index (parent row index)
+            const spanIndex = rowIndex;
 
-                const childRow = `
+            const childRow = `
                     <tr class="border-b border-gray-200 dark:border-gray-700">
                         <td class="px-2 py-2 border border-gray-300 dark:border-gray-600">
                             <input type="text" 
                                    name="location_details[${spanIndex}][child_rows][${newRowIndex}][location]"
-                                   placeholder="Child Span"
+                                   placeholder="Location"
                                    class="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
                         </td>
                         <td class="px-2 py-2 border border-gray-300 dark:border-gray-600">
@@ -2261,20 +2529,20 @@
                         </td>
                     </tr>
                 `;
-                childTableBody.append(childRow);
-            }
+            childTableBody.append(childRow);
+        }
 
-            // Handle Add Child Row button click
-            $(document).on('click', '.add-child-row-btn', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                const rowIndex = $(this).data('row-index');
-                addChildTableRow(rowIndex);
-            });
+        // Handle Add Child Row button click
+        $(document).on('click', '.add-child-row-btn', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
 
-            // Re-index span rows after deletion
-            function reindexSpanRows() {
+            const rowIndex = $(this).data('row-index');
+            addChildTableRow(rowIndex);
+        });
+
+        // Re-index span rows after deletion
+        function reindexSpanRows() {
             const tbody = $('#locationDetailsTableBody');
             const parentRows = tbody.find('.parent-row');
 
@@ -2317,6 +2585,408 @@
                 const childTableBody = $childRow.find('tbody');
                 if (childTableBody.length) {
                     childTableBody.attr('id', `childTableBody_${newIndex}`);
+                }
+            });
+        }
+
+        // Load and display formulas grouped by location_name
+        function loadFormulas() {
+            $.ajax({
+                url: '/api/formulas',
+                method: 'GET',
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                    'Accept': 'application/json'
+                },
+                success: function(formulas) {
+                    const formulasList = $('#formulasList');
+                    formulasList.empty();
+
+                    if (Object.keys(formulas).length === 0) {
+                        formulasList.html(
+                            '<div class="text-center py-8"><p class="text-sm text-gray-500 dark:text-gray-400">No formulas found.</p></div>'
+                        );
+                        return;
+                    }
+
+                    // Iterate through grouped formulas by location_name
+                    Object.keys(formulas).sort().forEach(function(locationName) {
+                        const locationFormulas = formulas[locationName];
+
+                        // Create location group header
+                        const locationGroup = $(`
+                            <div class="mb-4">
+                                <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-2 pb-2 border-b border-gray-200 dark:border-gray-600">
+                                    ${locationName}
+                                </h3>
+                                <div class="space-y-2">
+                                </div>
+                            </div>
+                        `);
+
+                        const formulasContainer = locationGroup.find('.space-y-2');
+
+                        // Add each formula under this location
+                        locationFormulas.forEach(function(formula) {
+                            const formulaId = 'formula-' + formula.id;
+                            const isActive = currentFormulaId === formula.id;
+                            const activeClasses = isActive ?
+                                'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700' :
+                                'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600';
+                            const formulaItem = $(`
+                                <div class="formula-item group px-3 ${activeClasses} rounded-lg border hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors cursor-pointer" onclick="editFormula(${formula.id}, '${escapeHtml(formula.location_name).replace(/'/g, "\\'")}', '${escapeHtml(formula.formula).replace(/'/g, "\\'")}')"
+                                     data-formula-id="${formula.id}"
+                                     data-location-name="${escapeHtml(formula.location_name)}"
+                                     data-formula-text="${escapeHtml(formula.formula)}">
+                                    <div class="flex items-start p-1.5 justify-between">
+                                        <div class="flex-1">
+                                            <div id="${formulaId}" class="text-sm text-gray-500 dark:text-gray-400 break-all font-serif italic">
+                                                ${escapeHtml(formula.formula)}
+                                            </div>
+                                        </div>
+                                        <button type="button" 
+                                                class="delete-formula-btn flex-shrink-0 ml-2 w-6 h-6 flex items-center justify-center text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors opacity-0 group-hover:opacity-100"
+                                                data-formula-id="${formula.id}"
+                                                title="Delete formula"
+                                                onclick="event.stopPropagation(); confirmDeleteFormula(${formula.id})">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            `);
+                            formulasContainer.append(formulaItem);
+
+                            // Render with MathJax (wrap formula in $...$ for proper rendering)
+                            const formulaElement = document.getElementById(formulaId);
+                            if (formulaElement && window.MathJax && window.MathJax
+                                .typesetPromise) {
+                                // Wrap content in $...$ for MathJax inline math rendering
+                                const originalContent = formulaElement.textContent ||
+                                    formulaElement.innerText;
+                                formulaElement.textContent = '$' + originalContent + '$';
+
+                                MathJax.typesetPromise([formulaElement])
+                                    .catch(function(err) {
+                                        console.error('MathJax rendering error:', err);
+                                    });
+                            }
+                        });
+
+                        formulasList.append(locationGroup);
+                    });
+                },
+                error: function(xhr) {
+                    const formulasList = $('#formulasList');
+                    formulasList.html(
+                        '<div class="text-center py-8"><p class="text-sm text-red-500 dark:text-red-400">Error loading formulas.</p></div>'
+                    );
+                    console.error('Error loading formulas:', xhr);
+                }
+            });
+        }
+
+        // Helper function to escape HTML
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, function(m) {
+                return map[m];
+            });
+        }
+
+        // Available column names for autocomplete (all uppercase)
+        const locationTableColumns = [
+            'NUMBER',
+            'LENGTH',
+            'WIDTH',
+            'HEIGHT',
+            'T. QTY'
+        ];
+
+        const childTableColumns = [
+            'SPACING',
+            'DIA',
+            'NO OF UNIT',
+            'NO PER UNIT',
+            'TOTAL NO',
+            'CUT LENGTH'
+        ];
+
+        const allColumns = [...locationTableColumns, ...childTableColumns];
+
+        // Setup autocomplete for formula input
+        function setupFormulaAutocomplete() {
+            $('#newFormulaText').autocomplete({
+                source: function(request, response) {
+                    // Extract the current word being typed (handle brackets and other characters)
+                    const textarea = $('#newFormulaText')[0];
+                    const cursorPos = textarea.selectionStart;
+                    const textBefore = textarea.value.substring(0, cursorPos);
+
+                    // Find the word boundaries - match word characters and spaces, but also handle brackets
+                    // We want to match the current word being typed
+                    const wordMatch = textBefore.match(/([\w\s.]+)$/);
+                    const currentWord = wordMatch ? wordMatch[0].trim() : '';
+
+                    if (currentWord) {
+                        const term = currentWord.toLowerCase();
+                        const matches = allColumns.filter(function(column) {
+                            return column.toLowerCase().indexOf(term) !== -1;
+                        });
+                        response(matches);
+                    } else {
+                        // If no current word, show all suggestions
+                        response(allColumns);
+                    }
+                },
+                minLength: 0,
+                delay: 0,
+                // Custom positioning to handle textarea
+                position: {
+                    my: "left top",
+                    at: "left bottom",
+                    collision: "flip"
+                },
+                select: function(event, ui) {
+                    const textarea = $('#newFormulaText')[0];
+                    const cursorPos = textarea.selectionStart;
+                    const textBefore = textarea.value.substring(0, cursorPos);
+                    const textAfter = textarea.value.substring(cursorPos);
+
+                    // Find the word to replace (the current word being typed)
+                    const wordMatch = textBefore.match(/([\w\s.]+)$/);
+                    const wordStart = wordMatch ? textBefore.length - wordMatch[0].length : cursorPos;
+
+                    // Replace the current word with the selected column name
+                    const newText = textarea.value.substring(0, wordStart) + ui.item.value + textAfter;
+                    textarea.value = newText;
+
+                    // Set cursor position after inserted text
+                    const newCursorPos = wordStart + ui.item.value.length;
+                    textarea.setSelectionRange(newCursorPos, newCursorPos);
+                    textarea.focus();
+
+                    updateFormulaPreview();
+
+                    // Trigger input event to update preview
+                    $(textarea).trigger('input');
+
+                    return false;
+                }
+            });
+
+            // Show all suggestions when clicking or focusing
+            $('#newFormulaText').on('focus', function() {
+                $(this).autocomplete('search', '');
+            });
+        }
+
+        // Show new formula section
+        function showNewFormulaSection() {
+            // Clear active formula
+            currentFormulaId = null;
+
+            // Remove active styling from all formulas
+            $('.formula-item').removeClass('bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700');
+            $('.formula-item').addClass('bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600');
+
+            $('#editingFormulaId').val('');
+            $('#formulaSectionTitle').text('New Formula');
+            $('#newFormulaSection').removeClass('hidden');
+            $('#newFormulaLocationName').val('');
+            $('#newFormulaText').val('');
+            $('#formulaPreview').html('<span class="text-gray-400">Formula preview will appear here...</span>');
+            $('#newFormulaLocationName').focus();
+
+            // Scroll to the new formula section
+            $('#newFormulaSection')[0].scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest'
+            });
+        }
+
+        // Edit formula - populate form with formula data
+        function editFormula(formulaId, locationName, formulaText) {
+            // Set active formula
+            currentFormulaId = formulaId;
+
+            // Remove active styling from all formulas
+            $('.formula-item').removeClass('bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700');
+            $('.formula-item').addClass('bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600');
+
+            // Add active styling to selected formula
+            $(`.formula-item[data-formula-id="${formulaId}"]`).removeClass(
+                'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600');
+            $(`.formula-item[data-formula-id="${formulaId}"]`).addClass(
+                'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700');
+
+            $('#editingFormulaId').val(formulaId);
+            $('#formulaSectionTitle').text('Edit Formula');
+            $('#newFormulaSection').removeClass('hidden');
+            $('#newFormulaLocationName').val(locationName);
+            $('#newFormulaText').val(formulaText);
+            updateFormulaPreview();
+
+            // Scroll to the formula section
+            $('#newFormulaSection')[0].scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest'
+            });
+            $('#newFormulaText').focus();
+        }
+
+        // Hide new formula section
+        function hideNewFormulaSection() {
+            // Clear active formula
+            currentFormulaId = null;
+
+            // Remove active styling from all formulas
+            $('.formula-item').removeClass('bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700');
+            $('.formula-item').addClass('bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600');
+
+            $('#editingFormulaId').val('');
+            $('#formulaSectionTitle').text('New Formula');
+            $('#newFormulaSection').addClass('hidden');
+            $('#newFormulaLocationName').val('');
+            $('#newFormulaText').val('');
+            $('#formulaPreview').html('<span class="text-gray-400">Formula preview will appear here...</span>');
+        }
+
+        // Confirm delete formula
+        function confirmDeleteFormula(formulaId) {
+            if (confirm('Are you sure you want to delete this formula? This action cannot be undone.')) {
+                deleteFormula(formulaId);
+            }
+        }
+
+        // Delete formula
+        function deleteFormula(formulaId) {
+            $.ajax({
+                url: '/api/formulas/' + formulaId,
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                    'Accept': 'application/json'
+                },
+                success: function(response) {
+                    // Clear active formula if it was the deleted one
+                    if (currentFormulaId === formulaId) {
+                        currentFormulaId = null;
+                        hideNewFormulaSection();
+                    }
+
+                    // Reload formulas list
+                    loadFormulas();
+                    console.log('Formula deleted successfully');
+                },
+                error: function(xhr) {
+                    console.error('Error deleting formula:', xhr);
+                    let errorMessage = 'Failed to delete formula.';
+                    if (xhr.responseJSON && xhr.responseJSON.error) {
+                        errorMessage = xhr.responseJSON.error;
+                    }
+                    alert(errorMessage);
+                }
+            });
+        }
+
+        // Update formula preview with MathJax rendering
+        function updateFormulaPreview() {
+            const formulaText = $('#newFormulaText').val();
+            const previewDiv = $('#formulaPreview');
+
+            if (!formulaText.trim()) {
+                previewDiv.html('<span class="text-gray-400">Formula preview will appear here...</span>');
+                return;
+            }
+
+            // Escape the formula text and wrap it for MathJax
+            // For inline math, we'll use $...$ format
+            const escapedFormula = escapeHtml(formulaText);
+            previewDiv.html('$' + escapedFormula + '$');
+
+            // Render with MathJax
+            if (window.MathJax && window.MathJax.typesetPromise) {
+                MathJax.typesetPromise([previewDiv[0]]).catch(function(err) {
+                    console.error('MathJax rendering error:', err);
+                    previewDiv.html('<span class="text-red-500">Error rendering formula</span>');
+                });
+            }
+        }
+
+        // Save formula (create or update)
+        function saveFormula() {
+            const formulaId = $('#editingFormulaId').val();
+            const locationName = $('#newFormulaLocationName').val().trim();
+            const formula = $('#newFormulaText').val().trim();
+
+            if (!locationName) {
+                alert('Please enter a location name.');
+                $('#newFormulaLocationName').focus();
+                return;
+            }
+
+            if (!formula) {
+                alert('Please enter a formula.');
+                $('#newFormulaText').focus();
+                return;
+            }
+
+            // Disable save button during request
+            const saveBtn = $('#saveFormulaBtn');
+            const originalText = saveBtn.text();
+            saveBtn.prop('disabled', true).text('Saving...');
+
+            const isUpdate = formulaId && formulaId !== '';
+            const url = isUpdate ? '/api/formulas/' + formulaId : '/api/formulas';
+            const method = isUpdate ? 'PUT' : 'POST';
+
+            $.ajax({
+                url: url,
+                method: method,
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                data: JSON.stringify({
+                    location_name: locationName,
+                    formula: formula
+                }),
+                success: function(response) {
+                    // Store the formula ID if we just created/updated it (to keep it active after reload)
+                    if (response.formula && response.formula.id) {
+                        currentFormulaId = response.formula.id;
+                    }
+
+                    // Hide the formula section
+                    hideNewFormulaSection();
+
+                    // Reload formulas list
+                    loadFormulas();
+
+                    // Show success message (optional)
+                    console.log(isUpdate ? 'Formula updated successfully' : 'Formula saved successfully');
+                },
+                error: function(xhr) {
+                    console.error('Error saving formula:', xhr);
+                    let errorMessage = isUpdate ? 'Failed to update formula.' : 'Failed to save formula.';
+                    if (xhr.responseJSON && xhr.responseJSON.error) {
+                        errorMessage = xhr.responseJSON.error;
+                    } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMessage = xhr.responseJSON.message;
+                    }
+                    alert(errorMessage);
+                },
+                complete: function() {
+                    saveBtn.prop('disabled', false).text(originalText);
                 }
             });
         }
