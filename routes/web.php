@@ -16,6 +16,12 @@ Route::resource('forms', FormController::class);
 Route::get('forms-deleted', [FormController::class, 'deleted'])->name('forms.deleted');
 Route::post('forms/{id}/restore', [FormController::class, 'restore'])->name('forms.restore');
 
+// Form Duplicate Route
+Route::post('forms/duplicate', [FormController::class, 'duplicate'])->name('forms.duplicate');
+
+// Form Update Details Route
+Route::post('forms/update-details', [FormController::class, 'updateDetails'])->name('forms.update-details');
+
 // Form API Routes
 Route::get('api/client-names', [FormController::class, 'getClientNames'])->name('api.client-names');
 Route::get('api/forms/{form}/fields', [FormController::class, 'getFormFields'])->name('api.form-fields');

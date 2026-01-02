@@ -217,7 +217,17 @@
                         <!-- Form Details -->
                         <div
                             class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
-                            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Form Details</h2>
+                            <div class="flex items-center justify-between mb-4">
+                                <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Form Details</h2>
+                                <button type="button" id="updateFormDetailsBtn"
+                                    class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-sm transition-colors duration-200">
+                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                    </svg>
+                                    Update Form
+                                </button>
+                            </div>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <label for="client_name"
@@ -489,6 +499,11 @@
             $('#formForm').on('submit', function(e) {
                 e.preventDefault();
                 submitForm();
+            });
+
+            // Handle update form details button click
+            $('#updateFormDetailsBtn').on('click', function() {
+                updateFormDetails();
             });
         });
 
@@ -915,6 +930,81 @@
                     $(this).remove();
                 });
             }, 3000);
+        }
+
+        function updateFormDetails() {
+            const oldClientName = '{{ $form->client_name }}';
+            const oldProjectName = '{{ $form->project_name }}';
+            const newClientName = $('#client_name').val().trim();
+            const newProjectName = $('#project_name').val().trim();
+
+            // Validate inputs
+            if (!newClientName || !newProjectName) {
+                alert('Please fill in both Client Name and Project Name.');
+                return;
+            }
+
+            // Check if values have changed
+            if (oldClientName === newClientName && oldProjectName === newProjectName) {
+                alert('No changes detected. Client Name and Project Name are the same as before.');
+                return;
+            }
+
+            // Confirm update
+            if (!confirm(`Are you sure you want to update all forms with client "${oldClientName}" and project "${oldProjectName}" to client "${newClientName}" and project "${newProjectName}"?`)) {
+                return;
+            }
+
+            // Show loading state
+            const updateBtn = $('#updateFormDetailsBtn');
+            const originalText = updateBtn.html();
+            updateBtn.prop('disabled', true).html(`
+                <svg class="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Updating...
+            `);
+
+            // Make AJAX request
+            $.ajax({
+                url: '{{ route('forms.update-details') }}',
+                method: 'POST',
+                data: {
+                    old_client_name: oldClientName,
+                    old_project_name: oldProjectName,
+                    new_client_name: newClientName,
+                    new_project_name: newProjectName
+                },
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                },
+                success: function(response) {
+                    updateBtn.prop('disabled', false).html(originalText);
+                    
+                    // Show success message
+                    showSuccessMessage(response.message || 'Forms updated successfully!');
+                    
+                    // Refresh sidebar to reflect updated names
+                    refreshSidebar();
+                },
+                error: function(xhr) {
+                    updateBtn.prop('disabled', false).html(originalText);
+                    
+                    let errorMessage = 'An error occurred while updating forms. Please try again.';
+                    
+                    if (xhr.responseJSON && xhr.responseJSON.error) {
+                        errorMessage = xhr.responseJSON.error;
+                    } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMessage = xhr.responseJSON.message;
+                    }
+                    
+                    alert(errorMessage);
+                    console.error('Error updating forms:', xhr);
+                }
+            });
         }
 
         function loadSidebarItemsForDuplicate() {

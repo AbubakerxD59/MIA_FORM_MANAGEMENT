@@ -598,6 +598,77 @@ class FormController extends Controller
     }
 
     /**
+     * Duplicate all forms with the same client_name and project_name.
+     */
+    public function duplicate(Request $request): JsonResponse|\Illuminate\Http\RedirectResponse
+    {
+        $client_name = $request->get('client_name');
+        $project_name = $request->get('project_name');
+
+        if (!$client_name || !$project_name) {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['error' => 'Client name and project name are required.'], 400);
+            }
+            return redirect()->route('forms.index')
+                ->with('error', 'Client name and project name are required.');
+        }
+
+        try {
+            $duplicatedCount = $this->formService->duplicateFormsByProject($client_name, $project_name);
+            $message = "All forms ({$duplicatedCount}) for client '{$client_name}' and project '{$project_name}' have been duplicated successfully.";
+
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['message' => $message, 'duplicated_count' => $duplicatedCount]);
+            }
+
+            return redirect()->route('forms.index')
+                ->with('success', $message);
+        } catch (\Exception $e) {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['error' => 'Failed to duplicate forms: ' . $e->getMessage()], 500);
+            }
+
+            return redirect()->route('forms.index')
+                ->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Update client name and project name for all forms with the same client_name and project_name.
+     */
+    public function updateDetails(Request $request): JsonResponse
+    {
+        $request->validate([
+            'old_client_name' => 'required|string',
+            'old_project_name' => 'required|string',
+            'new_client_name' => 'required|string',
+            'new_project_name' => 'required|string',
+        ]);
+
+        try {
+            $updatedCount = $this->formService->updateFormsDetails(
+                $request->get('old_client_name'),
+                $request->get('old_project_name'),
+                $request->get('new_client_name'),
+                $request->get('new_project_name')
+            );
+
+            $message = "All forms ({$updatedCount}) have been updated successfully.";
+
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'updated_count' => $updatedCount
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to update forms: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Export multiple forms to Excel with multiple sheets.
      */
     public function exportByProject(Request $request): StreamedResponse|\Illuminate\Http\RedirectResponse|JsonResponse

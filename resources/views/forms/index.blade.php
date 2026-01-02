@@ -396,7 +396,8 @@
                     </div>
                     <h3 class="ml-4 text-xl font-bold text-gray-900 dark:text-white">Confirm Delete</h3>
                 </div>
-                <p class="text-gray-600 dark:text-gray-300 mb-6" id="deleteModalMessage">Are you sure you want to delete this form? This action
+                <p class="text-gray-600 dark:text-gray-300 mb-6" id="deleteModalMessage">Are you sure you want to
+                    delete this form? This action
                     cannot be undone and all associated fields will be deleted.</p>
                 <div class="flex justify-end space-x-3">
                     <button id="cancelDelete"
@@ -585,6 +586,13 @@
                                         </svg>
                                         <span>Export</span>
                                     </a>
+                                    <button onclick="duplicateForm('${clientName}', '${projectName}')" 
+                                       class="btn-action bg-yellow-600 hover:bg-yellow-700 text-white shadow-md">
+                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                                        </svg>
+                                        <span>Duplicate</span>
+                                    </button>
                                     <button onclick="confirmDeleteByProject('${clientName}', '${projectName}')" 
                                        class="btn-action bg-red-600 hover:bg-red-700 text-white shadow-md">
                                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -649,19 +657,78 @@
                 }
             });
 
+            // Duplicate form function
+            window.duplicateForm = function(clientName, projectName) {
+                if (!confirm(
+                        `Are you sure you want to duplicate all forms for client "${decodeURIComponent(clientName)}" and project "${decodeURIComponent(projectName)}"?`
+                        )) {
+                    return;
+                }
+
+                const formData = {
+                    client_name: decodeURIComponent(clientName),
+                    project_name: decodeURIComponent(projectName)
+                };
+
+                fetch('{{ route('forms.duplicate') }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute(
+                                'content'),
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify(formData)
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.json().then(err => {
+                                throw new Error(err.error || err.message ||
+                                    'Failed to duplicate forms');
+                            });
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        // Reload DataTable
+                        if (formsTable) {
+                            formsTable.ajax.reload(null, false);
+                        }
+
+                        // Show success message
+                        showSuccessMessage(data.message || 'Forms duplicated successfully!');
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert(error.message || 'An error occurred while duplicating the forms.');
+                    });
+            };
+
+            // Reset delete button state
+            function resetDeleteButton() {
+                const submitBtn = document.querySelector('#deleteForm button[type="submit"]');
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Delete';
+                }
+            }
+
             // Delete confirmation function for project-based delete
             window.confirmDeleteByProject = function(clientName, projectName) {
+                // Reset button state when opening modal
+                resetDeleteButton();
+
                 const form = document.getElementById('deleteForm');
                 form.action = '{{ route('forms.delete-by-project') }}';
                 document.getElementById('deleteClientName').value = decodeURIComponent(clientName);
                 document.getElementById('deleteProjectName').value = decodeURIComponent(projectName);
-                
+
                 // Update modal message
                 const decodedClientName = decodeURIComponent(clientName);
                 const decodedProjectName = decodeURIComponent(projectName);
-                document.getElementById('deleteModalMessage').textContent = 
+                document.getElementById('deleteModalMessage').textContent =
                     `Are you sure you want to delete ALL forms for client "${decodedClientName}" and project "${decodedProjectName}"? This action cannot be undone and all associated fields will be deleted.`;
-                
+
                 const modal = document.getElementById('deleteModal');
                 modal.classList.remove('hidden');
                 modal.classList.add('flex');
@@ -672,11 +739,14 @@
 
             // Delete confirmation function (kept for backwards compatibility)
             window.confirmDelete = function(id) {
+                // Reset button state when opening modal
+                resetDeleteButton();
+
                 const form = document.getElementById('deleteForm');
                 form.action = `/forms/${id}`;
                 document.getElementById('deleteClientName').value = '';
                 document.getElementById('deleteProjectName').value = '';
-                document.getElementById('deleteModalMessage').textContent = 
+                document.getElementById('deleteModalMessage').textContent =
                     'Are you sure you want to delete this form? This action cannot be undone and all associated fields will be deleted.';
                 const modal = document.getElementById('deleteModal');
                 modal.classList.remove('hidden');
@@ -688,6 +758,9 @@
 
             // Cancel delete
             document.getElementById('cancelDelete').addEventListener('click', function() {
+                // Reset button state when canceling
+                resetDeleteButton();
+
                 const modal = document.getElementById('deleteModal');
                 modal.querySelector('div').classList.remove('scale-100');
                 setTimeout(() => {
@@ -699,6 +772,9 @@
             // Close modal on outside click
             document.getElementById('deleteModal').addEventListener('click', function(e) {
                 if (e.target === this) {
+                    // Reset button state when closing modal
+                    resetDeleteButton();
+
                     this.querySelector('div').classList.remove('scale-100');
                     setTimeout(() => {
                         this.classList.add('hidden');
@@ -723,18 +799,23 @@
                         body: formData,
                         headers: {
                             'X-Requested-With': 'XMLHttpRequest',
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')
+                                .getAttribute('content')
                         }
                     })
                     .then(response => {
                         if (!response.ok) {
                             return response.json().then(err => {
-                                throw new Error(err.error || err.message || 'Failed to delete forms');
+                                throw new Error(err.error || err.message ||
+                                    'Failed to delete forms');
                             });
                         }
                         return response.json();
                     })
                     .then(data => {
+                        // Reset button state after successful deletion
+                        resetDeleteButton();
+
                         const modal = document.getElementById('deleteModal');
                         modal.querySelector('div').classList.remove('scale-100');
                         setTimeout(() => {
@@ -778,4 +859,3 @@
 </body>
 
 </html>
-

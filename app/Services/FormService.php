@@ -4,14 +4,15 @@ namespace App\Services;
 
 use App\Models\Form;
 use App\Models\Field;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Arr;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
-use PhpOffice\PhpSpreadsheet\Style\Fill;
-use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 use PhpOffice\PhpSpreadsheet\Worksheet\PageSetup;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -327,6 +328,93 @@ class FormService
 
             DB::commit();
             return $deletedCount;
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
+    }
+
+    /**
+     * Duplicate forms by project.
+     */
+    public function duplicateFormsByProject(string $clientName, string $projectName): int
+    {
+        DB::beginTransaction();
+        try {
+            $randomSuffix = Str::random(6);
+            // Get all forms with matching client_name and project_name
+            $forms = Form::where('client_name', $clientName)
+                ->where('project_name', $projectName)
+                ->with('fields')
+                ->get();
+
+            if ($forms->isEmpty()) {
+                DB::rollBack();
+                throw new \Exception('No forms found with the specified client name and project name.');
+            }
+
+            $duplicatedCount = 0;
+
+            // Duplicate each form and its fields
+            foreach ($forms as $originalForm) {
+                // Create a new form with the same data
+                $newForm = Form::create([
+                    'item_name' => $originalForm->item_name,
+                    'unit' => $originalForm->unit,
+                    'client_name' => $originalForm->client_name . ' - ' . $randomSuffix,
+                    'project_name' => $originalForm->project_name . ' - ' . $randomSuffix,
+                ]);
+
+                // Duplicate all fields associated with the original form
+                foreach ($originalForm->fields as $originalField) {
+                    $newForm->fields()->create([
+                        'description' => $originalField->description,
+                        'quantity' => $originalField->quantity,
+                        'length' => $originalField->length,
+                        'width' => $originalField->width,
+                        'height' => $originalField->height,
+                        'product' => $originalField->product,
+                    ]);
+                }
+
+                $duplicatedCount++;
+            }
+
+            DB::commit();
+            return $duplicatedCount;
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
+    }
+
+    /**
+     * Update client name and project name for all forms with the same client_name and project_name.
+     */
+    public function updateFormsDetails(string $oldClientName, string $oldProjectName, string $newClientName, string $newProjectName): int
+    {
+        DB::beginTransaction();
+        try {
+            // Get all forms with matching old client_name and project_name
+            $forms = Form::where('client_name', $oldClientName)
+                ->where('project_name', $oldProjectName)
+                ->get();
+
+            if ($forms->isEmpty()) {
+                DB::rollBack();
+                throw new \Exception('No forms found with the specified client name and project name.');
+            }
+
+            // Update all forms with new client_name and project_name
+            $updatedCount = Form::where('client_name', $oldClientName)
+                ->where('project_name', $oldProjectName)
+                ->update([
+                    'client_name' => $newClientName,
+                    'project_name' => $newProjectName,
+                ]);
+
+            DB::commit();
+            return $updatedCount;
         } catch (\Exception $e) {
             DB::rollBack();
             throw $e;
@@ -673,6 +761,180 @@ class FormService
     }
 
     /**
+     * Generate summary sheet for Excel export.
+     */
+    public function generateSummarySheet($sheet, string $projectName, $forms, ?string $logoPath): void
+    {
+        $headerRows = 3;
+        $logoMergeCells = 'A1:A3';
+        $logoTotalRowHeight = 60;
+
+        // Add logo image
+        if ($logoPath && file_exists($logoPath)) {
+            // Set column width for A before adding logo
+            $sheet->getColumnDimension('A')->setWidth(11.5);
+
+            $sheet->mergeCells($logoMergeCells);
+            for ($i = 1; $i <= $headerRows; $i++) {
+                $sheet->getRowDimension($i)->setRowHeight(20);
+            }
+
+            $sheet->getStyle($logoMergeCells)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle($logoMergeCells)->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
+
+            $columnWidthPixels = 11.5 * 7;
+            $imageHeight = 70;
+            $imageWidth = $imageHeight;
+            $offsetX = ($columnWidthPixels - $imageWidth) / 2;
+            $offsetY = ($logoTotalRowHeight - $imageHeight) / 2;
+
+            $drawing = new Drawing();
+            $drawing->setName('Monogram');
+            $drawing->setDescription('Monogram');
+            $drawing->setPath($logoPath);
+            $drawing->setHeight($imageHeight);
+            $drawing->setWidth($imageWidth);
+            $drawing->setCoordinates('A1');
+            $drawing->setOffsetX(max(0, $offsetX));
+            $drawing->setOffsetY(max(0, $offsetY));
+            $drawing->setWorksheet($sheet);
+        } else {
+            $sheet->getColumnDimension('A')->setWidth(11.5);
+        }
+
+        // Header Section
+        $row = 1;
+        $sheet->setCellValue('B' . $row, 'PROJECT NAME');
+        $sheet->setCellValue('C' . $row, ucwords(strtolower($projectName)));
+        $row++;
+
+        $sheet->setCellValue('B' . $row, 'ITEM');
+        $sheet->setCellValue('C' . $row, 'Project Summary');
+        $row++;
+
+        // Style header rows
+        $headerLabelStyle = [
+            'font' => ['bold' => true, 'size' => 12, 'color' => ['rgb' => '000000']],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_LEFT,
+                'vertical' => Alignment::VERTICAL_CENTER
+            ]
+        ];
+        $headerValueStyle = [
+            'font' => ['bold' => false, 'size' => 12, 'color' => ['rgb' => '000000']],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_LEFT,
+                'vertical' => Alignment::VERTICAL_CENTER
+            ]
+        ];
+
+        $sheet->getStyle('B1')->applyFromArray($headerLabelStyle);
+        $sheet->getStyle('C1')->applyFromArray($headerValueStyle);
+        $sheet->getStyle('B2')->applyFromArray($headerLabelStyle);
+        $sheet->getStyle('C2')->applyFromArray($headerValueStyle);
+
+        // Add spacing row
+        $spacingRow = $headerRows + 1;
+        $sheet->setCellValue('A' . $spacingRow, '');
+        $sheet->getRowDimension($spacingRow)->setRowHeight(5);
+
+        // Summary Table Header
+        $tableHeaderRow = $spacingRow + 1;
+        $sheet->setCellValue('A' . $tableHeaderRow, 'S. NO');
+        $sheet->setCellValue('B' . $tableHeaderRow, 'DESCRIPTION');
+        $sheet->setCellValue('C' . $tableHeaderRow, 'UNIT');
+        $sheet->setCellValue('D' . $tableHeaderRow, 'TOTAL QTY');
+        $sheet->setCellValue('E' . $tableHeaderRow, 'RATE');
+        $sheet->setCellValue('F' . $tableHeaderRow, 'AMOUNT');
+
+        // Style table header
+        $tableHeaderStyle = [
+            'font' => ['bold' => true, 'size' => 12, 'color' => ['rgb' => '000000']],
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['rgb' => 'b9b9b9']
+            ],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                'vertical' => Alignment::VERTICAL_CENTER
+            ],
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => Border::BORDER_THIN,
+                    'color' => ['rgb' => '404040']
+                ]
+            ]
+        ];
+        $sheet->getStyle('A' . $tableHeaderRow . ':F' . $tableHeaderRow)->applyFromArray($tableHeaderStyle);
+        $sheet->getRowDimension($tableHeaderRow)->setRowHeight(25);
+        $sheet->getStyle('B' . $tableHeaderRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+
+        // Summary Data
+        $dataRow = $tableHeaderRow + 1;
+        foreach ($forms as $index => $form) {
+            // Calculate total QTY (sum of product column, rounded up)
+            $totalQty = ceil($form->fields->sum('product') ?? 0);
+
+            $sheet->setCellValue('A' . $dataRow, $index + 1);
+            $sheet->setCellValue('B' . $dataRow, ucwords(strtolower($form->item_name ?? '')));
+            $sheet->setCellValue('C' . $dataRow, $form->unit ?? 'CFT'); // UNIT from form
+            $sheet->setCellValue('D' . $dataRow, (int)$totalQty);
+            $sheet->setCellValue('E' . $dataRow, ''); // RATE - blank
+            $sheet->setCellValue('F' . $dataRow, ''); // AMOUNT - blank
+
+            // Style data rows
+            $dataStyle = [
+                'font' => ['size' => 11, 'color' => ['rgb' => '000000']],
+                'borders' => [
+                    'allBorders' => [
+                        'borderStyle' => Border::BORDER_THIN,
+                        'color' => ['rgb' => '404040']
+                    ]
+                ],
+                'alignment' => [
+                    'horizontal' => Alignment::HORIZONTAL_CENTER,
+                    'vertical' => Alignment::VERTICAL_CENTER
+                ]
+            ];
+            $sheet->getStyle('A' . $dataRow . ':F' . $dataRow)->applyFromArray($dataStyle);
+            $sheet->getStyle('B' . $dataRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+            $sheet->getStyle('D' . $dataRow)->getNumberFormat()->setFormatCode('0'); // Format as integer
+
+            $dataRow++;
+        }
+
+        // Set column widths
+        $sheet->getColumnDimension('A')->setWidth(11.5);
+        $sheet->getColumnDimension('B')->setWidth(31);
+        $sheet->getColumnDimension('C')->setWidth(11.5);
+        $sheet->getColumnDimension('D')->setWidth(11.5);
+        $sheet->getColumnDimension('E')->setWidth(11.5);
+        $sheet->getColumnDimension('F')->setWidth(11.5);
+
+        // Set page setup
+        $sheet->getPageSetup()->setPaperSize(PageSetup::PAPERSIZE_A4);
+        $sheet->getPageSetup()->setOrientation(PageSetup::ORIENTATION_PORTRAIT);
+        $sheet->getPageSetup()->setFitToWidth(1);
+        $sheet->getPageSetup()->setFitToHeight(0);
+
+        $lastRow = $dataRow - 1;
+        $sheet->getPageSetup()->setPrintArea('A1:F' . $lastRow);
+
+        // Set margins
+        $sheet->getPageMargins()->setTop(0.5);
+        $sheet->getPageMargins()->setRight(0.5);
+        $sheet->getPageMargins()->setBottom(1.0);
+        $sheet->getPageMargins()->setLeft(0.5);
+
+        // Set page footer
+        $footerText = "&C&12&B MIA CONSTRUCTION\n";
+        $footerText .= "\n&C&10 Consultant - Designer - Estimator - Contractor\n";
+        $footerText .= "&C&10 - 03218600259 -";
+        $sheet->getHeaderFooter()->setOddFooter($footerText);
+        $sheet->getHeaderFooter()->setEvenFooter($footerText);
+    }
+
+    /**
      * Export multiple forms to Excel with multiple sheets.
      */
     public function exportByProject(string $clientName, string $projectName): StreamedResponse
@@ -694,6 +956,12 @@ class FormService
 
         $logoPath = $this->findLogoPath();
 
+        // Create Summary sheet first
+        $summarySheet = new \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet($spreadsheet, 'Summary');
+        $spreadsheet->addSheet($summarySheet, 0);
+        $summarySheet->setTitle('Summary');
+        $this->generateSummarySheet($summarySheet, $projectName, $forms, $logoPath);
+
         // Create a sheet for each form
         foreach ($forms as $index => $form) {
             // Sanitize sheet title - Excel doesn't allow: : \ / ? * [ ]
@@ -702,7 +970,7 @@ class FormService
             $sheetTitle = substr($sanitizedTitle, 0, 31);
 
             $sheet = new \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet($spreadsheet, $sheetTitle);
-            $spreadsheet->addSheet($sheet, $index);
+            $spreadsheet->addSheet($sheet, $index + 1); // Start from index 1 since Summary is at 0
             $sheet->setTitle($sheetTitle);
 
             // Generate the form sheet with configuration for multi-item export
@@ -714,7 +982,7 @@ class FormService
             ]);
         }
 
-        // Set active sheet to first one
+        // Set active sheet to Summary (first one)
         $spreadsheet->setActiveSheetIndex(0);
 
         // Create writer
@@ -796,4 +1064,3 @@ class FormService
         );
     }
 }
-
