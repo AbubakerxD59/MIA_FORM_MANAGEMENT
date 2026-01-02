@@ -222,6 +222,47 @@
             height: 1rem;
         }
 
+        /* Action Dropdown Menu */
+        .action-dropdown {
+            position: relative;
+        }
+
+        .action-dropdown-menu {
+            position: absolute;
+            right: 0;
+            margin-top: 0.5rem;
+            width: 14rem;
+            border-radius: 0.375rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            background-color: white;
+            z-index: 50;
+        }
+
+        .dark .action-dropdown-menu {
+            background-color: #1f2937;
+        }
+
+        .action-dropdown-item {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            color: #374151;
+            transition: background-color 0.15s ease-in-out;
+        }
+
+        .dark .action-dropdown-item {
+            color: #d1d5db;
+        }
+
+        .action-dropdown-item:hover {
+            background-color: #f3f4f6;
+        }
+
+        .dark .action-dropdown-item:hover {
+            background-color: #374151;
+        }
+
         /* Loading Spinner */
         .dataTables_processing {
             background: rgba(255, 255, 255, 0.9) !important;
@@ -556,50 +597,74 @@
                         name: 'actions',
                         orderable: false,
                         searchable: false,
-                        width: '20%',
+                        width: '15%',
                         className: 'text-center',
                         render: function(data, type, row) {
                             const clientName = encodeURIComponent(row.client_name || '');
                             const projectName = encodeURIComponent(row.project_name || '');
+                            const rowId = `action-menu-${row.id}`;
                             return `
-                                <div class="flex items-center justify-center space-x-2">
-                                    <a href="/forms/project/edit?client_name=${clientName}&project_name=${projectName}" 
-                                       class="btn-action bg-blue-600 hover:bg-blue-700 text-white shadow-md">
-                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                <div class="relative inline-block text-left">
+                                    <button type="button" 
+                                            onclick="toggleActionMenu('${rowId}')"
+                                            class="inline-flex items-center justify-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg shadow-md transition-colors duration-200">
+                                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
                                         </svg>
-                                        <span>Edit</span>
-                                    </a>
-                                    <a href="/forms/bbs/${row.id}" 
-                                       class="btn-action bg-purple-600 hover:bg-purple-700 text-white shadow-md">
-                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                                        Actions
+                                        <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                                         </svg>
-                                        <span>BBS</span>
-                                    </a>
-                                     <a href="/forms/project/export?client_name=${clientName}&project_name=${projectName}" 
-                                       class="btn-action bg-green-600 hover:bg-green-700 text-white shadow-md export-btn"
-                                       data-client-name="${row.client_name || ''}"
-                                       data-project-name="${row.project_name || ''}">
-                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                        </svg>
-                                        <span>Export</span>
-                                    </a>
-                                    <button onclick="duplicateForm('${clientName}', '${projectName}')" 
-                                       class="btn-action bg-yellow-600 hover:bg-yellow-700 text-white shadow-md">
-                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-                                        </svg>
-                                        <span>Duplicate</span>
                                     </button>
-                                    <button onclick="confirmDeleteByProject('${clientName}', '${projectName}')" 
-                                       class="btn-action bg-red-600 hover:bg-red-700 text-white shadow-md">
-                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                        </svg>
-                                        <span>Delete</span>
-                                    </button>
+                                    <div id="${rowId}" 
+                                         class="hidden absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 z-50">
+                                        <div class="py-1" role="menu">
+                                            <a href="/forms/project/edit?client_name=${clientName}&project_name=${projectName}" 
+                                               onclick="closeActionMenu('${rowId}')"
+                                               class="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700" role="menuitem">
+                                                <svg class="w-4 h-4 mr-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                                </svg>
+                                                Edit
+                                            </a>
+                                            <a href="/forms/bbs/${row.id}" 
+                                               onclick="closeActionMenu('${rowId}')"
+                                               class="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700" role="menuitem">
+                                                <svg class="w-4 h-4 mr-3 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                                                </svg>
+                                                BBS
+                                            </a>
+                                            <a href="/forms/project/export?client_name=${clientName}&project_name=${projectName}" 
+                                               onclick="closeActionMenu('${rowId}')"
+                                               class="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 export-btn"
+                                               data-client-name="${row.client_name || ''}"
+                                               data-project-name="${row.project_name || ''}"
+                                               role="menuitem">
+                                                <svg class="w-4 h-4 mr-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                                </svg>
+                                                Export
+                                            </a>
+                                            <button onclick="duplicateForm('${clientName}', '${projectName}'); closeActionMenu('${rowId}');" 
+                                                    class="w-full flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700" 
+                                                    role="menuitem">
+                                                <svg class="w-4 h-4 mr-3 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                                                </svg>
+                                                Duplicate
+                                            </button>
+                                            <div class="border-t border-gray-200 dark:border-gray-600"></div>
+                                            <button onclick="confirmDeleteByProject('${clientName}', '${projectName}'); closeActionMenu('${rowId}');" 
+                                                    class="w-full flex items-center px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700" 
+                                                    role="menuitem">
+                                                <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                                </svg>
+                                                Delete
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             `;
                         }
@@ -653,6 +718,39 @@
                                 'height': '2.5rem'
                             });
                         }
+                    });
+                }
+            });
+
+            // Toggle action menu
+            window.toggleActionMenu = function(menuId) {
+                // Close all other menus first
+                document.querySelectorAll('[id^="action-menu-"]').forEach(menu => {
+                    if (menu.id !== menuId) {
+                        menu.classList.add('hidden');
+                    }
+                });
+                
+                // Toggle the clicked menu
+                const menu = document.getElementById(menuId);
+                if (menu) {
+                    menu.classList.toggle('hidden');
+                }
+            };
+
+            // Close action menu
+            window.closeActionMenu = function(menuId) {
+                const menu = document.getElementById(menuId);
+                if (menu) {
+                    menu.classList.add('hidden');
+                }
+            };
+
+            // Close dropdown menus when clicking outside
+            document.addEventListener('click', function(event) {
+                if (!event.target.closest('.relative.inline-block')) {
+                    document.querySelectorAll('[id^="action-menu-"]').forEach(menu => {
+                        menu.classList.add('hidden');
                     });
                 }
             });
