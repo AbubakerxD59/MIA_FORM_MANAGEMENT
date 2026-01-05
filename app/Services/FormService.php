@@ -174,6 +174,7 @@ class FormService
             'form_id' => $form->id,
             'item_name' => $form->item_name,
             'unit' => $form->unit,
+            'rate' => $form->rate,
             'fields' => $fieldsData
         ];
     }
@@ -214,6 +215,7 @@ class FormService
             $form = Form::create([
                 'item_name' => $validated['item_name'] ?? null,
                 'unit' => $validated['unit'] ?? null,
+                'rate' => $validated['rate'] ?? null,
                 'client_name' => $validated['client_name'],
                 'project_name' => $validated['project_name'],
             ]);
@@ -252,6 +254,7 @@ class FormService
             $form->update([
                 'item_name' => $validated['item_name'] ?? null,
                 'unit' => $validated['unit'] ?? null,
+                'rate' => $validated['rate'] ?? null,
                 'client_name' => $validated['client_name'],
                 'project_name' => $validated['project_name'],
             ]);
@@ -874,13 +877,17 @@ class FormService
         foreach ($forms as $index => $form) {
             // Calculate total QTY (sum of product column, rounded up)
             $totalQty = ceil($form->fields->sum('product') ?? 0);
+            
+            // Calculate amount (total QTY * rate) and round up to integer
+            $rate = $form->rate ?? 0;
+            $amount = ceil($totalQty * $rate);
 
             $sheet->setCellValue('A' . $dataRow, $index + 1);
             $sheet->setCellValue('B' . $dataRow, ucwords(strtolower($form->item_name ?? '')));
             $sheet->setCellValue('C' . $dataRow, $form->unit ?? 'CFT'); // UNIT from form
             $sheet->setCellValue('D' . $dataRow, (int)$totalQty);
-            $sheet->setCellValue('E' . $dataRow, ''); // RATE - blank
-            $sheet->setCellValue('F' . $dataRow, ''); // AMOUNT - blank
+            $sheet->setCellValue('E' . $dataRow, $form->rate ?? ''); // RATE from form
+            $sheet->setCellValue('F' . $dataRow, (int)$amount); // AMOUNT = ceil(TOTAL QTY * RATE)
 
             // Style data rows
             $dataStyle = [
@@ -899,6 +906,12 @@ class FormService
             $sheet->getStyle('A' . $dataRow . ':F' . $dataRow)->applyFromArray($dataStyle);
             $sheet->getStyle('B' . $dataRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
             $sheet->getStyle('D' . $dataRow)->getNumberFormat()->setFormatCode('0'); // Format as integer
+            // Format RATE as number with 2 decimal places
+            if ($form->rate !== null) {
+                $sheet->getStyle('E' . $dataRow)->getNumberFormat()->setFormatCode('#,##0.00');
+            }
+            // Format AMOUNT as integer (no decimals)
+            $sheet->getStyle('F' . $dataRow)->getNumberFormat()->setFormatCode('#,##0');
 
             $dataRow++;
         }

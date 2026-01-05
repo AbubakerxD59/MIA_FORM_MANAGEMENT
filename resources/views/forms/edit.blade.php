@@ -177,7 +177,8 @@
                                     <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors sidebar-item"
                                         data-form-id="{{ $relatedForm->id }}">
                                         <div class="flex items-start justify-between">
-                                            <div class="flex-1 cursor-pointer" onclick="loadFormFields({{ $relatedForm->id }})">
+                                            <div class="flex-1 cursor-pointer"
+                                                onclick="loadFormFields({{ $relatedForm->id }})">
                                                 <p class="text-sm font-medium text-gray-900 dark:text-white">
                                                     {{ $relatedForm->item_name ?: 'No Item Name' }}
                                                 </p>
@@ -185,12 +186,16 @@
                                                     Created: {{ $relatedForm->created_at->format('M d, Y') }}
                                                 </p>
                                             </div>
-                                            <button type="button" 
+                                            <button type="button"
                                                 onclick="event.stopPropagation(); confirmDeleteItem({{ $relatedForm->id }}, '{{ addslashes($relatedForm->item_name ?: 'No Item Name') }}')"
                                                 class="ml-2 p-1.5 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
                                                 title="Delete item">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                                                    </path>
                                                 </svg>
                                             </button>
                                         </div>
@@ -221,9 +226,11 @@
                                 <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Form Details</h2>
                                 <button type="button" id="updateFormDetailsBtn"
                                     class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-sm transition-colors duration-200">
-                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                                        </path>
                                     </svg>
                                     Update Form
                                 </button>
@@ -280,7 +287,7 @@
 
                                     <!-- Item Name and Unit Fields -->
                                     <div id="itemNameField" class="mb-6">
-                                        <div class="grid grid-cols-2 gap-4 mb-4">
+                                        <div class="grid grid-cols-3 gap-4 mb-4">
                                             <div>
                                                 <label for="fields_item_name"
                                                     class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -307,14 +314,25 @@
                                                     <option value="KG">KG</option>
                                                 </select>
                                             </div>
+                                            <div>
+                                                <label for="fields_rate"
+                                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                    Rate
+                                                </label>
+                                                <input type="number" id="fields_rate" name="fields_rate"
+                                                    step="0.01" min="0" placeholder="Enter rate"
+                                                    class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
+                                            </div>
                                         </div>
-                                        
+
                                         <!-- Duplicate Section (only shown in Add Item mode) -->
-                                        <div id="duplicateSection" class="hidden mt-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
+                                        <div id="duplicateSection"
+                                            class="hidden mt-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
                                             <div class="flex items-center mb-3">
-                                                <input type="checkbox" id="duplicateCheckbox" 
+                                                <input type="checkbox" id="duplicateCheckbox"
                                                     class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
-                                                <label for="duplicateCheckbox" class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                <label for="duplicateCheckbox"
+                                                    class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">
                                                     Duplicate from existing item
                                                 </label>
                                             </div>
@@ -404,7 +422,8 @@
                         <h3 class="ml-4 text-xl font-bold text-gray-900 dark:text-white">Confirm Delete</h3>
                     </div>
                     <p class="text-gray-600 dark:text-gray-300 mb-6" id="deleteItemModalMessage">
-                        Are you sure you want to delete this item? This action cannot be undone and all associated fields will be deleted.
+                        Are you sure you want to delete this item? This action cannot be undone and all associated
+                        fields will be deleted.
                     </p>
                     <div class="flex justify-end space-x-3">
                         <button id="cancelDeleteItem"
@@ -515,7 +534,8 @@
                 'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700');
             $('.sidebar-item').addClass('bg-gray-50 dark:bg-gray-700');
             $(`.sidebar-item[data-form-id="${formId}"]`).removeClass('bg-gray-50 dark:bg-gray-700');
-            $(`.sidebar-item[data-form-id="${formId}"]`).addClass('bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700');
+            $(`.sidebar-item[data-form-id="${formId}"]`).addClass(
+                'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700');
 
             // Show loading state
             $('#fieldsSection').addClass('hidden');
@@ -544,11 +564,12 @@
                     $('#exportCurrentBtn').removeClass('hidden');
                     $('#exportCurrentBtn').attr('href', `/forms/${formId}/export`);
 
-                    // Show and populate item name and unit fields for existing items
+                    // Show and populate item name, unit, and rate fields for existing items
                     $('#itemNameField').removeClass('hidden');
                     $('#fields_item_name').val(response.item_name || '');
                     $('#fields_unit').val(response.unit || '');
-                    
+                    $('#fields_rate').val(response.rate || '');
+
                     // Hide duplicate section when editing existing item
                     $('#duplicateSection').addClass('hidden');
 
@@ -755,11 +776,13 @@
             formData.append('client_name', $('#client_name').val());
             formData.append('project_name', $('#project_name').val());
 
-            // Get item name and unit from the visible fields (works for both new and existing items)
+            // Get item name, unit, and rate from the visible fields (works for both new and existing items)
             const itemName = $('#fields_item_name').val();
             const unit = $('#fields_unit').val();
+            const rate = $('#fields_rate').val();
             formData.append('item_name', itemName);
             formData.append('unit', unit);
+            formData.append('rate', rate);
 
             // Collect fields data
             $('#fieldsTableBody tr').each(function(index) {
@@ -951,7 +974,9 @@
             }
 
             // Confirm update
-            if (!confirm(`Are you sure you want to update all forms with client "${oldClientName}" and project "${oldProjectName}" to client "${newClientName}" and project "${newProjectName}"?`)) {
+            if (!confirm(
+                    `Are you sure you want to update all forms with client "${oldClientName}" and project "${oldProjectName}" to client "${newClientName}" and project "${newProjectName}"?`
+                    )) {
                 return;
             }
 
@@ -983,24 +1008,24 @@
                 },
                 success: function(response) {
                     updateBtn.prop('disabled', false).html(originalText);
-                    
+
                     // Show success message
                     showSuccessMessage(response.message || 'Forms updated successfully!');
-                    
+
                     // Refresh sidebar to reflect updated names
                     refreshSidebar();
                 },
                 error: function(xhr) {
                     updateBtn.prop('disabled', false).html(originalText);
-                    
+
                     let errorMessage = 'An error occurred while updating forms. Please try again.';
-                    
+
                     if (xhr.responseJSON && xhr.responseJSON.error) {
                         errorMessage = xhr.responseJSON.error;
                     } else if (xhr.responseJSON && xhr.responseJSON.message) {
                         errorMessage = xhr.responseJSON.message;
                     }
-                    
+
                     alert(errorMessage);
                     console.error('Error updating forms:', xhr);
                 }
@@ -1034,7 +1059,7 @@
                 },
                 success: function(items) {
                     select.html('<option value="">-- Select an item --</option>');
-                    
+
                     if (items.length === 0) {
                         select.html('<option value="">No items available</option>');
                         return;
@@ -1068,13 +1093,10 @@
                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                 },
                 success: function(response) {
-                    // Populate item name and unit
-                    if (response.item_name) {
-                        $('#fields_item_name').val(response.item_name);
-                    }
-                    if (response.unit) {
-                        $('#fields_unit').val(response.unit);
-                    }
+                    // Populate item name, unit, and rate
+                    $('#fields_item_name').val(response.item_name || '');
+                    $('#fields_unit').val(response.unit || '');
+                    $('#fields_rate').val(response.rate || '');
 
                     // Remove field IDs from duplicated fields so they're treated as new fields
                     const duplicatedResponse = {
@@ -1083,7 +1105,7 @@
                         unit: response.unit,
                         fields: response.fields.map(function(field) {
                             return {
-                                id: null,  // Remove ID so it's treated as a new field
+                                id: null, // Remove ID so it's treated as a new field
                                 index: field.index,
                                 description: field.description || '',
                                 quantity: field.quantity || '',
@@ -1097,9 +1119,9 @@
 
                     // Render the fields table with duplicated data (without IDs)
                     renderFieldsTable(duplicatedResponse);
-                    
+
                     duplicateButton.prop('disabled', false).text(originalText);
-                    
+
                     // Show success message
                     showSuccessMessage('Fields duplicated successfully!');
                 },
@@ -1284,8 +1306,9 @@
             itemToDeleteId = formId;
             const modal = document.getElementById('deleteItemModal');
             const message = document.getElementById('deleteItemModalMessage');
-            message.textContent = `Are you sure you want to delete the item "${itemName}"? This action cannot be undone and all associated fields will be deleted.`;
-            
+            message.textContent =
+                `Are you sure you want to delete the item "${itemName}"? This action cannot be undone and all associated fields will be deleted.`;
+
             modal.classList.remove('hidden');
             modal.classList.add('flex');
             setTimeout(() => {
@@ -1363,7 +1386,7 @@
 
                     // Show success message
                     showSuccessMessage('Item deleted successfully!');
-                    
+
                     itemToDeleteId = null;
                     confirmBtn.disabled = false;
                     confirmBtn.textContent = originalText;
@@ -1371,14 +1394,14 @@
                 error: function(xhr) {
                     confirmBtn.disabled = false;
                     confirmBtn.textContent = originalText;
-                    
+
                     let errorMessage = 'Failed to delete item. Please try again.';
                     if (xhr.responseJSON && xhr.responseJSON.error) {
                         errorMessage = xhr.responseJSON.error;
                     } else if (xhr.responseJSON && xhr.responseJSON.message) {
                         errorMessage = xhr.responseJSON.message;
                     }
-                    
+
                     alert(errorMessage);
                     console.error('Error deleting item:', xhr);
                 }

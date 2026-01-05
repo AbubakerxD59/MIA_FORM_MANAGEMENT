@@ -18,6 +18,7 @@ class Form extends Model
     protected $fillable = [
         'item_name',
         'unit',
+        'rate',
         'client_name',
         'project_name',
     ];
