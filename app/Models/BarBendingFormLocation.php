@@ -2,13 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Scopes\UserScope;
+use App\Models\Traits\CreatedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class BarBendingFormLocation extends Model
 {
-    use HasFactory;
+    use HasFactory, CreatedBy;
 
     /**
      * The attributes that are mass assignable.
@@ -17,6 +19,7 @@ class BarBendingFormLocation extends Model
      */
     protected $fillable = [
         'form_id',
+        'user_id',
         'item_id',
         'location_id',
     ];
@@ -43,5 +46,21 @@ class BarBendingFormLocation extends Model
     public function location(): BelongsTo
     {
         return $this->belongsTo(BarBendingLocation::class);
+    }
+
+    /**
+     * Get the user that owns the bar bending form location.
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
+     * The "booted" method of the model.
+     */
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new UserScope);
     }
 }

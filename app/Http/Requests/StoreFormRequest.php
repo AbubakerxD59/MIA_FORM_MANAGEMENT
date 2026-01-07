@@ -25,6 +25,7 @@ class StoreFormRequest extends FormRequest
             'item_name' => 'nullable|string|max:255',
             'unit' => 'nullable|string|max:10|in:CFT,SFT,RFT,CUM,SQM,RM',
             'rate' => 'nullable|numeric|min:0',
+            'group_by' => 'nullable|string|max:255',
             'client_name' => 'required|string|max:255',
             'project_name' => 'required|string|max:255',
             'fields' => 'nullable|array',

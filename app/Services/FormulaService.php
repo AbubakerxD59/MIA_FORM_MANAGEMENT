@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Formula;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
 
 class FormulaService
 {

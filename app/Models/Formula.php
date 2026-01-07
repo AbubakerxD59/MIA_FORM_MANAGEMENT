@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Scopes\UserScope;
+use App\Models\Traits\CreatedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Formula extends Model
 {
-    use HasFactory;
+    use HasFactory, CreatedBy;
 
     /**
      * The attributes that are mass assignable.
@@ -17,6 +19,23 @@ class Formula extends Model
     protected $fillable = [
         'location_name',
         'formula',
+        'user_id',
     ];
+
+    /**
+     * Get the user that owns the formula.
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
+     * The "booted" method of the model.
+     */
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new UserScope);
+    }
 }
 

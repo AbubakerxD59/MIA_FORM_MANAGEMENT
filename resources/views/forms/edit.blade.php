@@ -75,6 +75,25 @@
         .animate-slide-in {
             animation: slide-in 0.3s ease-out;
         }
+
+        /* Group By Autocomplete Styles */
+        #groupByAutocomplete {
+            max-height: 240px;
+        }
+
+        #groupByAutocomplete .group-by-suggestion {
+            transition: background-color 0.15s ease-in-out;
+        }
+
+        #groupByAutocomplete .group-by-suggestion:hover,
+        #groupByAutocomplete .group-by-suggestion.active {
+            background-color: #f3f4f6;
+        }
+
+        .dark #groupByAutocomplete .group-by-suggestion:hover,
+        .dark #groupByAutocomplete .group-by-suggestion.active {
+            background-color: #374151;
+        }
     </style>
 </head>
 
@@ -85,14 +104,17 @@
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
                 <div class="flex items-center justify-between">
                     <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Edit Form</h1>
-                    <a href="{{ route('forms.index') }}"
-                        class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg shadow-sm transition-colors duration-200">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                        </svg>
-                        Back to List
-                    </a>
+                    <div class="flex items-center space-x-3">
+                        <a href="{{ route('forms.index') }}"
+                            class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg shadow-sm transition-colors duration-200">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                            </svg>
+                            Back to List
+                        </a>
+                        <x-user-dropdown />
+                    </div>
                 </div>
             </div>
         </header>
@@ -324,6 +346,21 @@
                                                     class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
                                             </div>
                                         </div>
+                                        <div class="w-full">
+                                            <label for="fields_group_by"
+                                                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                Group By
+                                            </label>
+                                            <div class="relative">
+                                                <input type="text" id="fields_group_by" name="fields_group_by"
+                                                    placeholder="Enter group by" autocomplete="off"
+                                                    class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
+                                                <div id="groupByAutocomplete"
+                                                    class="hidden absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                                                    <!-- Autocomplete suggestions will be inserted here -->
+                                                </div>
+                                            </div>
+                                        </div>
 
                                         <!-- Duplicate Section (only shown in Add Item mode) -->
                                         <div id="duplicateSection"
@@ -460,15 +497,37 @@
                         class="hidden px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition-colors duration-200">
                         Update Form
                     </button>
-                    <a href="#" id="exportCurrentBtn"
-                        class="hidden inline-flex items-center px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg shadow-sm transition-colors duration-200">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
-                            </path>
-                        </svg>
-                        Export
-                    </a>
+                    <div id="exportDropdown" class="hidden relative inline-block text-left">
+                        <button type="button" id="exportDropdownBtn"
+                            class="inline-flex items-center px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg shadow-sm transition-colors duration-200"
+                            onclick="toggleExportMenu()">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                                </path>
+                            </svg>
+                            Export
+                            <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        <div id="exportDropdownMenu"
+                            class="hidden absolute right-0 bottom-full mb-2 w-56 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 z-50">
+                            <div class="py-1">
+                                <a href="#" id="exportAsGroupBtn"
+                                    class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                    onclick="closeExportMenu()">
+                                    Export as Group
+                                </a>
+                                <a href="#" id="exportAsItemBtn"
+                                    class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                    onclick="closeExportMenu()">
+                                    Export as Item
+                                </a>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -480,6 +539,8 @@
 
         // Handle sidebar item clicks
         $(document).ready(function() {
+            // Refresh sidebar on page load to show grouped items
+            refreshSidebar();
             // Delegate click handler for sidebar items (works for dynamically added items)
             // Note: Click handling is now done via onclick in the item div to allow delete button clicks
 
@@ -524,7 +585,148 @@
             $('#updateFormDetailsBtn').on('click', function() {
                 updateFormDetails();
             });
+
+            // Initialize group_by autocomplete
+            initializeGroupByAutocomplete();
         });
+
+        // Export dropdown helpers (bottom navbar)
+        function toggleExportMenu() {
+            const menu = document.getElementById('exportDropdownMenu');
+            if (!menu) return;
+            menu.classList.toggle('hidden');
+        }
+
+        function closeExportMenu() {
+            const menu = document.getElementById('exportDropdownMenu');
+            if (!menu) return;
+            menu.classList.add('hidden');
+        }
+
+        // Close export menu on outside click
+        document.addEventListener('click', function(e) {
+            const dropdown = document.getElementById('exportDropdown');
+            const menu = document.getElementById('exportDropdownMenu');
+            if (!dropdown || !menu) return;
+            if (!dropdown.contains(e.target)) {
+                menu.classList.add('hidden');
+            }
+        });
+
+        function toggleGroup(groupId) {
+            const $groupItems = $('#' + groupId);
+            const $groupHeader = $('[data-group-id="' + groupId + '"]');
+            const $arrow = $groupHeader.find('.group-arrow');
+
+            if ($groupItems.hasClass('hidden')) {
+                $groupItems.removeClass('hidden');
+                $arrow.css('transform', 'rotate(90deg)');
+            } else {
+                $groupItems.addClass('hidden');
+                $arrow.css('transform', 'rotate(0deg)');
+            }
+        }
+
+        function initializeGroupByAutocomplete() {
+            let autocompleteTimeout;
+            const $input = $('#fields_group_by');
+            const $autocomplete = $('#groupByAutocomplete');
+
+            $input.on('input', function() {
+                const query = $(this).val().trim();
+
+                // Clear previous timeout
+                clearTimeout(autocompleteTimeout);
+
+                // Hide autocomplete if input is empty
+                if (query.length === 0) {
+                    $autocomplete.addClass('hidden').empty();
+                    return;
+                }
+
+                // Debounce the AJAX call
+                autocompleteTimeout = setTimeout(function() {
+                    $.ajax({
+                        url: '{{ route('api.group-by-values') }}',
+                        method: 'GET',
+                        data: {
+                            q: query
+                        },
+                        headers: {
+                            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                            'Accept': 'application/json'
+                        },
+                        success: function(suggestions) {
+                            if (suggestions.length === 0) {
+                                $autocomplete.addClass('hidden').empty();
+                                return;
+                            }
+
+                            let html = '';
+                            suggestions.forEach(function(item) {
+                                html += `
+                                    <div class="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer group-by-suggestion" data-value="${item.value.replace(/"/g, '&quot;')}">
+                                        ${item.label}
+                                    </div>
+                                `;
+                            });
+
+                            $autocomplete.html(html).removeClass('hidden');
+
+                            // Handle suggestion click
+                            $autocomplete.find('.group-by-suggestion').on('click', function() {
+                                const value = $(this).data('value');
+                                $input.val(value);
+                                $autocomplete.addClass('hidden').empty();
+                            });
+                        },
+                        error: function() {
+                            $autocomplete.addClass('hidden').empty();
+                        }
+                    });
+                }, 300); // 300ms debounce
+            });
+
+            // Hide autocomplete when clicking outside
+            $(document).on('click', function(e) {
+                if (!$(e.target).closest('#fields_group_by, #groupByAutocomplete').length) {
+                    $autocomplete.addClass('hidden');
+                }
+            });
+
+            // Handle keyboard navigation
+            $input.on('keydown', function(e) {
+                const $suggestions = $autocomplete.find('.group-by-suggestion');
+                const $active = $autocomplete.find('.group-by-suggestion.active');
+
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    if ($active.length) {
+                        $active.removeClass('active');
+                        $active.next().addClass('active bg-gray-100 dark:bg-gray-700');
+                    } else {
+                        $suggestions.first().addClass('active bg-gray-100 dark:bg-gray-700');
+                    }
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    if ($active.length) {
+                        $active.removeClass('active');
+                        $active.prev().addClass('active bg-gray-100 dark:bg-gray-700');
+                    } else {
+                        $suggestions.last().addClass('active bg-gray-100 dark:bg-gray-700');
+                    }
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if ($active.length) {
+                        const value = $active.data('value');
+                        $input.val(value);
+                        $autocomplete.addClass('hidden').empty();
+                    }
+                } else if (e.key === 'Escape') {
+                    $autocomplete.addClass('hidden').empty();
+                }
+            });
+        }
 
         function loadFormFields(formId) {
             currentFormId = formId;
@@ -561,14 +763,31 @@
                     $('#addRowBtn').removeClass('hidden');
                     $('#updateFormBtn').removeClass('hidden');
                     $('#updateFormBtn').text('Update Form');
-                    $('#exportCurrentBtn').removeClass('hidden');
-                    $('#exportCurrentBtn').attr('href', `/forms/${formId}/export`);
+                    // Show export dropdown and set export links
+                    $('#exportDropdown').removeClass('hidden');
+                    $('#exportAsItemBtn').attr('href', `/forms/${formId}/export`);
+                    const clientName = encodeURIComponent($('#client_name').val() || '');
+                    const projectName = encodeURIComponent($('#project_name').val() || '');
+                    if (response.group_by && response.group_by.trim() !== '') {
+                        const groupBy = encodeURIComponent(response.group_by);
+                        $('#exportAsGroupBtn')
+                            .removeClass('pointer-events-none opacity-50')
+                            .attr('href',
+                                `{{ url('forms/project/export-group') }}?client_name=${clientName}&project_name=${projectName}&group_by=${groupBy}`
+                                );
+                    } else {
+                        // Disable group export if no group_by present on selected item
+                        $('#exportAsGroupBtn')
+                            .addClass('pointer-events-none opacity-50')
+                            .attr('href', '#');
+                    }
 
-                    // Show and populate item name, unit, and rate fields for existing items
+                    // Show and populate item name, unit, rate, and group_by fields for existing items
                     $('#itemNameField').removeClass('hidden');
                     $('#fields_item_name').val(response.item_name || '');
                     $('#fields_unit').val(response.unit || '');
                     $('#fields_rate').val(response.rate || '');
+                    $('#fields_group_by').val(response.group_by || '');
 
                     // Hide duplicate section when editing existing item
                     $('#duplicateSection').addClass('hidden');
@@ -716,10 +935,12 @@
             $('#item_name_input').val('');
             $('#is_new_item').val('1');
 
-            // Show item name and unit fields for new items
+            // Show item name, unit, rate, and group_by fields for new items
             $('#itemNameField').removeClass('hidden');
             $('#fields_item_name').val('');
             $('#fields_unit').val('');
+            $('#fields_rate').val('');
+            $('#fields_group_by').val('');
 
             // Show duplicate section for new items
             $('#duplicateSection').removeClass('hidden');
@@ -755,7 +976,7 @@
             $('#addRowBtn').removeClass('hidden');
             $('#updateFormBtn').removeClass('hidden');
             $('#updateFormBtn').text('Create Form');
-            $('#exportCurrentBtn').addClass('hidden');
+            $('#exportDropdown').addClass('hidden');
 
             // Clear active state from sidebar items
             $('.sidebar-item').removeClass('bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700');
@@ -776,13 +997,15 @@
             formData.append('client_name', $('#client_name').val());
             formData.append('project_name', $('#project_name').val());
 
-            // Get item name, unit, and rate from the visible fields (works for both new and existing items)
+            // Get item name, unit, rate, and group_by from the visible fields (works for both new and existing items)
             const itemName = $('#fields_item_name').val();
             const unit = $('#fields_unit').val();
             const rate = $('#fields_rate').val();
+            const groupBy = $('#fields_group_by').val();
             formData.append('item_name', itemName);
             formData.append('unit', unit);
             formData.append('rate', rate);
+            formData.append('group_by', groupBy);
 
             // Collect fields data
             $('#fieldsTableBody tr').each(function(index) {
@@ -868,65 +1091,124 @@
             }
 
             $.ajax({
-                url: '{{ route('api.sidebar-items') }}',
-                method: 'GET',
-                data: {
-                    client_name: clientName,
-                    project_name: projectName
-                },
-                headers: {
-                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
-                    'Accept': 'application/json'
-                },
-                success: function(items) {
-                    const sidebarList = $('#sidebarItemsList');
-                    sidebarList.empty();
+                    url: '{{ route('api.sidebar-items') }}',
+                    method: 'GET',
+                    data: {
+                        client_name: clientName,
+                        project_name: projectName
+                    },
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                        'Accept': 'application/json'
+                    },
+                    success: function(items) {
+                        const sidebarList = $('#sidebarItemsList');
+                        sidebarList.empty();
 
-                    if (items.length === 0) {
-                        sidebarList.html(
-                            '<div id="emptySidebarMessage" class="text-center py-8"><p class="text-sm text-gray-500 dark:text-gray-400">No items found.</p></div>'
-                        );
-                        return;
-                    }
+                        if (items.length === 0) {
+                            sidebarList.html(
+                                '<div id="emptySidebarMessage" class="text-center py-8"><p class="text-sm text-gray-500 dark:text-gray-400">No items found.</p></div>'
+                            );
+                            return;
+                        }
 
-                    items.forEach(function(item) {
-                        const itemName = item.item_name || 'No Item Name';
-                        const createdAt = new Date(item.created_at).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric'
-                        });
-                        const isSelected = selectedFormId && item.id == selectedFormId;
-                        const bgClass = isSelected ?
-                            'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700' :
-                            'bg-gray-50 dark:bg-gray-700';
-
-                        const itemHtml = `
-                            <div class="p-3 ${bgClass} rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors sidebar-item"
-                                 data-form-id="${item.id}">
-                                <div class="flex items-start justify-between">
-                                    <div class="flex-1 cursor-pointer" onclick="loadFormFields(${item.id})">
-                                        <p class="text-sm font-medium text-gray-900 dark:text-white">
-                                            ${itemName}
-                                        </p>
-                                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                            Created: ${createdAt}
-                                        </p>
+                        items.forEach(function(item) {
+                                if (item.is_group) {
+                                    // Render group header with expandable items
+                                    const groupId = 'group-' + item.group_by.replace(/[^a-zA-Z0-9]/g, '-');
+                                    const groupHtml = `
+                                <div class="mb-2">
+                                    <div class="flex items-center justify-between p-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-200 dark:border-indigo-700 cursor-pointer group-header"
+                                         onclick="toggleGroup('${groupId}')"
+                                         data-group-id="${groupId}">
+                                        <div class="flex items-center">
+                                            <svg class="w-4 h-4 mr-2 text-indigo-600 dark:text-indigo-400 group-arrow transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                            </svg>
+                                            <span class="text-sm font-semibold text-indigo-700 dark:text-indigo-300">${item.group_by}</span>
+                                            <span class="ml-2 text-xs text-indigo-600 dark:text-indigo-400">(${item.items.length})</span>
+                                        </div>
                                     </div>
-                                    <button type="button" 
-                                        onclick="event.stopPropagation(); confirmDeleteItem(${item.id}, '${itemName.replace(/'/g, "\\'")}')"
-                                        class="ml-2 p-1.5 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
-                                        title="Delete item">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                        </svg>
-                                    </button>
+                                    <div id="${groupId}" class="hidden mt-1 ml-4 space-y-2 group-items">
+                                        ${item.items.map(function(subItem) {
+                                            const itemName = subItem.item_name || 'No Item Name';
+                                            const createdAt = new Date(subItem.created_at).toLocaleDateString('en-US', {
+                                                month: 'short',
+                                                day: 'numeric',
+                                                year: 'numeric'
+                                            });
+                                            const isSelected = selectedFormId && subItem.id == selectedFormId;
+                                            const bgClass = isSelected ?
+                                                'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700' :
+                                                'bg-gray-50 dark:bg-gray-700';
+                                            
+                                            return `
+                                                <div class="p-2 ${bgClass} rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors sidebar-item"
+                                                     data-form-id="${subItem.id}">
+                                                    <div class="flex items-start justify-between">
+                                                        <div class="flex-1 cursor-pointer" onclick="loadFormFields(${subItem.id})">
+                                                            <p class="text-xs font-medium text-gray-900 dark:text-white">
+                                                                ${itemName}
+                                                            </p>
+                                                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                                                ${createdAt}
+                                                            </p>
+                                                        </div>
+                                                        <button type="button" 
+                                                            onclick="event.stopPropagation(); confirmDeleteItem(${subItem.id}, '${itemName.replace(/'/g, "\\'")}')"
+                                                            class="ml-2 p-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                                                            title="Delete item">
+                                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                                            </svg>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            `;
+                                        }).join('')}
+                                    </div>
                                 </div>
-                            </div>
-                        `;
+                            `;
+                                sidebarList.append(groupHtml);
+                            } else {
+                                // Render regular item (no group_by)
+                                const itemName = item.item_name || 'No Item Name';
+                                const createdAt = new Date(item.created_at).toLocaleDateString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    year: 'numeric'
+                                });
+                                const isSelected = selectedFormId && item.id == selectedFormId;
+                                const bgClass = isSelected ?
+                                    'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700' :
+                                    'bg-gray-50 dark:bg-gray-700';
 
-                        sidebarList.append(itemHtml);
-                    });
+                                const itemHtml = `
+                                <div class="p-3 ${bgClass} rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors sidebar-item"
+                                     data-form-id="${item.id}">
+                                    <div class="flex items-start justify-between">
+                                        <div class="flex-1 cursor-pointer" onclick="loadFormFields(${item.id})">
+                                            <p class="text-sm font-medium text-gray-900 dark:text-white">
+                                                ${itemName}
+                                            </p>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                Created: ${createdAt}
+                                            </p>
+                                        </div>
+                                        <button type="button" 
+                                            onclick="event.stopPropagation(); confirmDeleteItem(${item.id}, '${itemName.replace(/'/g, "\\'")}')"
+                                            class="ml-2 p-1.5 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                                            title="Delete item">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
+                                sidebarList.append(itemHtml);
+                            }
+                        });
                 },
                 error: function() {
                     console.error('Failed to refresh sidebar');
@@ -976,7 +1258,7 @@
             // Confirm update
             if (!confirm(
                     `Are you sure you want to update all forms with client "${oldClientName}" and project "${oldProjectName}" to client "${newClientName}" and project "${newProjectName}"?`
-                    )) {
+                )) {
                 return;
             }
 
@@ -1093,10 +1375,11 @@
                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                 },
                 success: function(response) {
-                    // Populate item name, unit, and rate
+                    // Populate item name, unit, rate, and group_by
                     $('#fields_item_name').val(response.item_name || '');
                     $('#fields_unit').val(response.unit || '');
                     $('#fields_rate').val(response.rate || '');
+                    $('#fields_group_by').val(response.group_by || '');
 
                     // Remove field IDs from duplicated fields so they're treated as new fields
                     const duplicatedResponse = {
@@ -1380,7 +1663,7 @@
                         $('#fieldsSection').addClass('hidden');
                         $('#addRowBtn').addClass('hidden');
                         $('#updateFormBtn').addClass('hidden');
-                        $('#exportCurrentBtn').addClass('hidden');
+                        $('#exportDropdown').addClass('hidden');
                         $('#duplicateSection').addClass('hidden');
                     }
 

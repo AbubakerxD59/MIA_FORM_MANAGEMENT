@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Scopes\UserScope;
+use App\Models\Traits\CreatedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,7 +11,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class BarBendingItemDetail extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, CreatedBy;
 
     /**
      * The attributes that are mass assignable.
@@ -18,6 +20,7 @@ class BarBendingItemDetail extends Model
      */
     protected $fillable = [
         'form_id',
+        'user_id',
         'location_id',
         'name',
         'number',
@@ -59,5 +62,21 @@ class BarBendingItemDetail extends Model
     public function location(): BelongsTo
     {
         return $this->belongsTo(BarBendingLocation::class, 'location_id');
+    }
+
+    /**
+     * Get the user that owns the bar bending item detail.
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
+     * The "booted" method of the model.
+     */
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new UserScope);
     }
 }

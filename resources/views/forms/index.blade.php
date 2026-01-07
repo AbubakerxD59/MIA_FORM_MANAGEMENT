@@ -318,6 +318,7 @@
                             </svg>
                             Restore Forms
                         </a>
+                        <x-user-dropdown />
                     </div>
                 </div>
             </div>

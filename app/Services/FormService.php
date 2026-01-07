@@ -7,6 +7,7 @@ use App\Models\Field;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -140,6 +141,31 @@ class FormService
     }
 
     /**
+     * Get unique group_by values for autocomplete.
+     */
+    public function getGroupByValues(string $query = ''): array
+    {
+        $queryBuilder = Form::whereNotNull('group_by')
+            ->where('group_by', '!=', '')
+            ->select('group_by')
+            ->distinct()
+            ->orderBy('group_by', 'asc');
+
+        if (!empty($query)) {
+            $queryBuilder->where('group_by', 'like', "%{$query}%");
+        }
+
+        $groupByValues = $queryBuilder->take(20)->get();
+
+        return $groupByValues->map(function ($form) {
+            return [
+                'value' => $form->group_by,
+                'label' => $form->group_by
+            ];
+        })->toArray();
+    }
+
+    /**
      * Get form fields data.
      */
     public function getFormFieldsData(Form $form): array
@@ -175,12 +201,13 @@ class FormService
             'item_name' => $form->item_name,
             'unit' => $form->unit,
             'rate' => $form->rate,
+            'group_by' => $form->group_by,
             'fields' => $fieldsData
         ];
     }
 
     /**
-     * Get sidebar items for a client and project.
+     * Get sidebar items for a client and project, grouped by group_by value.
      */
     public function getSidebarItems(string $clientName, string $projectName): array
     {
@@ -192,17 +219,53 @@ class FormService
             ->where('project_name', $projectName)
             ->whereNotNull('item_name')
             ->orderBy('item_name', 'asc')
-            ->get(['id', 'item_name', 'created_at', 'client_name', 'project_name']);
+            ->get(['id', 'item_name', 'created_at', 'client_name', 'project_name', 'group_by']);
 
-        return $relatedForms->map(function ($form) {
-            return [
-                'id' => $form->id,
-                'item_name' => $form->item_name,
-                'created_at' => $form->created_at->toISOString(),
-                'client_name' => $form->client_name,
-                'project_name' => $form->project_name,
-            ];
-        })->toArray();
+        // Group forms by group_by value
+        $grouped = $relatedForms->groupBy(function ($form) {
+            return $form->group_by ?? '__ungrouped__';
+        });
+
+        $result = [];
+
+        // Process grouped items (non-null/empty group_by)
+        foreach ($grouped as $groupBy => $forms) {
+            if ($groupBy === '__ungrouped__') {
+                // Items without group_by - add them individually
+                foreach ($forms as $form) {
+                    $result[] = [
+                        'id' => $form->id,
+                        'item_name' => $form->item_name,
+                        'created_at' => $form->created_at->toISOString(),
+                        'client_name' => $form->client_name,
+                        'project_name' => $form->project_name,
+                        'group_by' => null,
+                        'is_group' => false,
+                    ];
+                }
+            } else {
+                // Items with group_by - add as group header
+                $groupItems = $forms->map(function ($form) {
+                    return [
+                        'id' => $form->id,
+                        'item_name' => $form->item_name,
+                        'created_at' => $form->created_at->toISOString(),
+                        'client_name' => $form->client_name,
+                        'project_name' => $form->project_name,
+                        'group_by' => $form->group_by,
+                        'is_group' => false,
+                    ];
+                })->toArray();
+
+                $result[] = [
+                    'group_by' => $groupBy,
+                    'is_group' => true,
+                    'items' => $groupItems,
+                ];
+            }
+        }
+
+        return $result;
     }
 
     /**
@@ -216,6 +279,7 @@ class FormService
                 'item_name' => $validated['item_name'] ?? null,
                 'unit' => $validated['unit'] ?? null,
                 'rate' => $validated['rate'] ?? null,
+                'group_by' => $validated['group_by'] ?? null,
                 'client_name' => $validated['client_name'],
                 'project_name' => $validated['project_name'],
             ]);
@@ -255,6 +319,7 @@ class FormService
                 'item_name' => $validated['item_name'] ?? null,
                 'unit' => $validated['unit'] ?? null,
                 'rate' => $validated['rate'] ?? null,
+                'group_by' => $validated['group_by'] ?? null,
                 'client_name' => $validated['client_name'],
                 'project_name' => $validated['project_name'],
             ]);
@@ -364,6 +429,8 @@ class FormService
                 $newForm = Form::create([
                     'item_name' => $originalForm->item_name,
                     'unit' => $originalForm->unit,
+                    'rate' => $originalForm->rate,
+                    'group_by' => $originalForm->group_by,
                     'client_name' => $originalForm->client_name . ' - ' . $randomSuffix,
                     'project_name' => $originalForm->project_name . ' - ' . $randomSuffix,
                 ]);
@@ -872,17 +939,55 @@ class FormService
         $sheet->getRowDimension($tableHeaderRow)->setRowHeight(25);
         $sheet->getStyle('B' . $tableHeaderRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
 
-        // Summary Data
+        // Summary Data - Group by group_by value
         $dataRow = $tableHeaderRow + 1;
-        foreach ($forms as $index => $form) {
+        $serialNo = 1;
+
+        // Separate forms into grouped and ungrouped
+        $groupedForms = [];
+        $ungroupedForms = [];
+
+        foreach ($forms as $form) {
+            $groupBy = $form->group_by;
+            if (empty($groupBy) || $groupBy === null) {
+                $ungroupedForms[] = $form;
+            } else {
+                if (!isset($groupedForms[$groupBy])) {
+                    $groupedForms[$groupBy] = [];
+                }
+                $groupedForms[$groupBy][] = $form;
+            }
+        }
+
+        // Group header style
+        $groupHeaderStyle = [
+            'font' => ['bold' => true, 'size' => 12, 'color' => ['rgb' => '000000']],
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['rgb' => 'd9d9d9']
+            ],
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => Border::BORDER_THIN,
+                    'color' => ['rgb' => '404040']
+                ]
+            ],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                'vertical' => Alignment::VERTICAL_CENTER
+            ]
+        ];
+
+        // Helper function to add a data row for a form
+        $addDataRow = function ($form, &$serialNo) use ($sheet, &$dataRow) {
             // Calculate total QTY (sum of product column, rounded up)
             $totalQty = ceil($form->fields->sum('product') ?? 0);
-            
+
             // Calculate amount (total QTY * rate) and round up to integer
             $rate = $form->rate ?? 0;
             $amount = ceil($totalQty * $rate);
 
-            $sheet->setCellValue('A' . $dataRow, $index + 1);
+            $sheet->setCellValue('A' . $dataRow, $serialNo);
             $sheet->setCellValue('B' . $dataRow, ucwords(strtolower($form->item_name ?? '')));
             $sheet->setCellValue('C' . $dataRow, $form->unit ?? 'CFT'); // UNIT from form
             $sheet->setCellValue('D' . $dataRow, (int)$totalQty);
@@ -914,6 +1019,27 @@ class FormService
             $sheet->getStyle('F' . $dataRow)->getNumberFormat()->setFormatCode('#,##0');
 
             $dataRow++;
+            $serialNo++;
+        };
+
+        // Process grouped forms
+        foreach ($groupedForms as $groupByValue => $groupForms) {
+            // Add group header row
+            $sheet->setCellValue('A' . $dataRow, ucwords(strtolower($groupByValue)));
+            $sheet->mergeCells('A' . $dataRow . ':F' . $dataRow);
+            $sheet->getStyle('A' . $dataRow . ':F' . $dataRow)->applyFromArray($groupHeaderStyle);
+            $sheet->getRowDimension($dataRow)->setRowHeight(25);
+            $dataRow++;
+
+            // Add items under this group
+            foreach ($groupForms as $form) {
+                $addDataRow($form, $serialNo);
+            }
+        }
+
+        // Process ungrouped forms (null or empty group_by)
+        foreach ($ungroupedForms as $form) {
+            $addDataRow($form, $serialNo);
         }
 
         // Set column widths
@@ -1062,6 +1188,78 @@ class FormService
         $projectName = str_replace(' ', '_', $form->project_name);
         $itemName = $form->item_name ? str_replace(' ', '_', $form->item_name) : 'Form';
         $filename = $clientName . '_' . $projectName . '_' . $itemName . '.xlsx';
+
+        // Return as download
+        return new StreamedResponse(
+            function () use ($writer) {
+                $writer->save('php://output');
+            },
+            200,
+            [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+                'Cache-Control' => 'max-age=0',
+            ]
+        );
+    }
+
+    /**
+     * Export forms that share the same group_by value for a client and project.
+     */
+    public function exportByGroup(string $clientName, string $projectName, string $groupBy): StreamedResponse
+    {
+        // Get all forms with matching client_name, project_name and group_by where item_name is not null
+        $forms = Form::where('client_name', $clientName)
+            ->where('project_name', $projectName)
+            ->where('group_by', $groupBy)
+            ->whereNotNull('item_name')
+            ->with('fields')
+            ->orderBy('item_name', 'asc')
+            ->get();
+
+        if ($forms->isEmpty()) {
+            throw new \Exception('No forms found for the specified group. Please ensure there are forms with this group_by value for this client and project.');
+        }
+
+        $spreadsheet = new Spreadsheet();
+        $spreadsheet->removeSheetByIndex(0);
+
+        $logoPath = $this->findLogoPath();
+
+        // Create Summary sheet first
+        $summarySheet = new \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet($spreadsheet, 'Summary');
+        $spreadsheet->addSheet($summarySheet, 0);
+        $summarySheet->setTitle('Summary');
+        $this->generateSummarySheet($summarySheet, $projectName, $forms, $logoPath);
+
+        // Create a sheet for each form (only those with matching group_by)
+        foreach ($forms as $index => $form) {
+            // Sanitize sheet title - Excel doesn't allow: : \ / ? * [ ]
+            $rawTitle = $form->item_name ?? 'Sheet' . ($index + 1);
+            $sanitizedTitle = preg_replace('/[:\/\\?*\[\]]/', '-', $rawTitle);
+            $sheetTitle = substr($sanitizedTitle, 0, 31);
+
+            $sheet = new \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet($spreadsheet, $sheetTitle);
+            $spreadsheet->addSheet($sheet, $index + 1); // Start from index 1 since Summary is at 0
+            $sheet->setTitle($sheetTitle);
+
+            // Generate the form sheet with configuration
+            $this->generateFormSheet($sheet, $form, $logoPath, [
+                'headerRows' => 3,
+                'includeClientName' => false,
+                'logoMergeCells' => 'A1:A3',
+                'logoTotalRowHeight' => 60,
+            ]);
+        }
+
+        // Set active sheet to Summary (first one)
+        $spreadsheet->setActiveSheetIndex(0);
+
+        // Create writer
+        $writer = new Xlsx($spreadsheet);
+
+        // Generate filename
+        $filename = str_replace(' ', '_', $clientName) . '_' . str_replace(' ', '_', $projectName) . '_Group_' . str_replace(' ', '_', $groupBy) . '.xlsx';
 
         // Return as download
         return new StreamedResponse(

@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Scopes\UserScope;
+use App\Models\Traits\CreatedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,7 +11,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Field extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, CreatedBy;
 
     /**
      * The attributes that are mass assignable.
@@ -18,6 +20,7 @@ class Field extends Model
      */
     protected $fillable = [
         'form_id',
+        'user_id',
         'description',
         'quantity',
         'length',
@@ -48,6 +51,22 @@ class Field extends Model
     public function form(): BelongsTo
     {
         return $this->belongsTo(Form::class);
+    }
+
+    /**
+     * Get the user that owns the field.
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
+     * The "booted" method of the model.
+     */
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new UserScope);
     }
 }
 

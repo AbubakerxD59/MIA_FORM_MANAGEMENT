@@ -15,6 +15,7 @@ use App\Http\Requests\StoreFormRequest;
 use App\Http\Requests\UpdateFormRequest;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -59,6 +60,16 @@ class FormController extends Controller
     {
         $query = $request->get('q', '');
         $suggestions = $this->formService->getClientNames($query);
+        return response()->json($suggestions);
+    }
+
+    /**
+     * Get unique group_by values for autocomplete.
+     */
+    public function getGroupByValues(Request $request): JsonResponse
+    {
+        $query = $request->get('q', '');
+        $suggestions = $this->formService->getGroupByValues($query);
         return response()->json($suggestions);
     }
 
@@ -694,6 +705,26 @@ class FormController extends Controller
     {
         try {
             return $this->formService->exportForm($form);
+        } catch (\Exception $e) {
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Export only items that share the same group_by value as the selected item.
+     */
+    public function exportByGroup(Request $request): StreamedResponse|\Illuminate\Http\RedirectResponse|JsonResponse
+    {
+        $client_name = $request->get('client_name');
+        $project_name = $request->get('project_name');
+        $group_by = $request->get('group_by');
+
+        if (!$client_name || !$project_name || $group_by === null || $group_by === '') {
+            return back()->with('error', 'Client name, project name and group by are required for group export.');
+        }
+
+        try {
+            return $this->formService->exportByGroup($client_name, $project_name, $group_by);
         } catch (\Exception $e) {
             return back()->with('error', $e->getMessage());
         }
