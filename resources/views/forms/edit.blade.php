@@ -1347,7 +1347,26 @@
                         return;
                     }
 
+                    // Flatten the items array to handle both grouped and ungrouped items
+                    const flattenedItems = [];
                     items.forEach(function(item) {
+                        if (item.is_group && item.items) {
+                            // If it's a group, add all items from the group
+                            item.items.forEach(function(groupItem) {
+                                flattenedItems.push(groupItem);
+                            });
+                        } else if (item.id && item.item_name) {
+                            // If it's a regular item, add it directly
+                            flattenedItems.push(item);
+                        }
+                    });
+
+                    if (flattenedItems.length === 0) {
+                        select.html('<option value="">No items available</option>');
+                        return;
+                    }
+
+                    flattenedItems.forEach(function(item) {
                         const itemName = item.item_name || 'No Item Name';
                         const option = $('<option></option>')
                             .attr('value', item.id)

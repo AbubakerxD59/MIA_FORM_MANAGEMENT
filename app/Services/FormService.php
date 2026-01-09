@@ -227,13 +227,15 @@ class FormService
         });
 
         $result = [];
+        $ungroupedItems = [];
+        $groupedItems = [];
 
-        // Process grouped items (non-null/empty group_by)
+        // Separate grouped and ungrouped items
         foreach ($grouped as $groupBy => $forms) {
             if ($groupBy === '__ungrouped__') {
-                // Items without group_by - add them individually
+                // Items without group_by - collect them separately
                 foreach ($forms as $form) {
-                    $result[] = [
+                    $ungroupedItems[] = [
                         'id' => $form->id,
                         'item_name' => $form->item_name,
                         'created_at' => $form->created_at->toISOString(),
@@ -257,13 +259,21 @@ class FormService
                     ];
                 })->toArray();
 
-                $result[] = [
+                $groupedItems[] = [
                     'group_by' => $groupBy,
                     'is_group' => true,
                     'items' => $groupItems,
                 ];
             }
         }
+
+        // Sort grouped items by group_by value in ascending order
+        usort($groupedItems, function ($a, $b) {
+            return strcasecmp($a['group_by'], $b['group_by']);
+        });
+
+        // Add grouped items first (sorted), then ungrouped items
+        $result = array_merge($groupedItems, $ungroupedItems);
 
         return $result;
     }
@@ -1031,9 +1041,47 @@ class FormService
             $sheet->getRowDimension($dataRow)->setRowHeight(25);
             $dataRow++;
 
+            // Track the first data row of this group for total calculation
+            $groupFirstDataRow = $dataRow;
+
             // Add items under this group
             foreach ($groupForms as $form) {
                 $addDataRow($form, $serialNo);
+            }
+
+            // Add total row for this group
+            $groupLastDataRow = $dataRow - 1;
+            if ($groupLastDataRow >= $groupFirstDataRow) {
+                // Calculate total amount for this group (sum of column F)
+                $totalFormula = '=SUM(F' . $groupFirstDataRow . ':F' . $groupLastDataRow . ')';
+                
+                // Merge cells A through E for "Total" label
+                $sheet->mergeCells('A' . $dataRow . ':E' . $dataRow);
+                
+                // Set total row
+                $sheet->setCellValue('A' . $dataRow, 'Total Amount');
+                $sheet->setCellValue('F' . $dataRow, $totalFormula);
+
+                // Style total row (no background color, with right alignment for total)
+                $totalRowStyle = [
+                    'font' => ['bold' => true, 'size' => 11, 'color' => ['rgb' => '000000']],
+                    'borders' => [
+                        'allBorders' => [
+                            'borderStyle' => Border::BORDER_THIN,
+                            'color' => ['rgb' => '404040']
+                        ]
+                    ],
+                    'alignment' => [
+                        'horizontal' => Alignment::HORIZONTAL_CENTER,
+                        'vertical' => Alignment::VERTICAL_CENTER
+                    ]
+                ];
+                $sheet->getStyle('A' . $dataRow . ':F' . $dataRow)->applyFromArray($totalRowStyle);
+                $sheet->getStyle('A' . $dataRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+                $sheet->getStyle('F' . $dataRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+                $sheet->getStyle('F' . $dataRow)->getNumberFormat()->setFormatCode('#,##0'); // Format as integer
+                $sheet->getRowDimension($dataRow)->setRowHeight(25);
+                $dataRow++;
             }
         }
 
