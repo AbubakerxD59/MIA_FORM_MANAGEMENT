@@ -585,26 +585,40 @@ class FormController extends Controller
     }
 
     /**
-     * Restore the specified deleted form.
+     * Restore the specified deleted form and all forms with the same client_name and project_name.
      */
     public function restore($id)
     {
         try {
-            $this->formService->restoreForm($id);
+            // Get the form to extract client_name and project_name
+            $form = Form::onlyTrashed()->findOrFail($id);
+            
+            // Restore all forms with the same client_name and project_name
+            $restoredCount = $this->formService->restoreFormsByProject(
+                $form->client_name,
+                $form->project_name
+            );
+
+            $message = $restoredCount === 1 
+                ? 'Form restored successfully.' 
+                : "All forms ({$restoredCount}) for client '{$form->client_name}' and project '{$form->project_name}' have been restored successfully.";
 
             if (request()->wantsJson()) {
-                return response()->json(['message' => 'Form restored successfully.']);
+                return response()->json([
+                    'message' => $message,
+                    'restored_count' => $restoredCount
+                ]);
             }
 
             return redirect()->route('forms.deleted')
-                ->with('success', 'Form restored successfully.');
+                ->with('success', $message);
         } catch (\Exception $e) {
             if (request()->wantsJson()) {
-                return response()->json(['message' => 'Failed to restore form: ' . $e->getMessage()], 500);
+                return response()->json(['message' => 'Failed to restore forms: ' . $e->getMessage()], 500);
             }
 
             return redirect()->route('forms.deleted')
-                ->with('error', 'Failed to restore form: ' . $e->getMessage());
+                ->with('error', 'Failed to restore forms: ' . $e->getMessage());
         }
     }
 

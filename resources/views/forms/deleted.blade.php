@@ -308,9 +308,8 @@
                         <thead>
                             <tr>
                                 <th>ID</th>
-                                <th>Client Name</th>
-                                <th>Project Name</th>
-                                <th>Created At</th>
+                                <th class="text-center">Client Name</th>
+                                <th class="text-center">Project Name</th>
                                 <th class="text-center">Actions</th>
                             </tr>
                         </thead>
@@ -366,6 +365,7 @@
                     { 
                         data: 'client_name', 
                         name: 'client_name',
+                        className: 'text-center',
                         render: function(data) {
                             return `<span class="font-medium text-gray-900 dark:text-white">${data || '-'}</span>`;
                         }
@@ -373,24 +373,9 @@
                     { 
                         data: 'project_name', 
                         name: 'project_name',
+                        className: 'text-center',
                         render: function(data) {
                             return `<span class="text-gray-700 dark:text-gray-300">${data || '-'}</span>`;
-                        }
-                    },
-                    { 
-                        data: 'created_at', 
-                        name: 'created_at',
-                        render: function(data) {
-                            if (data) {
-                                const date = new Date(data);
-                                return `
-                                    <div class="text-sm">
-                                        <div class="text-gray-900 dark:text-white font-medium">${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
-                                        <div class="text-gray-500 dark:text-gray-400 text-xs">${date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</div>
-                                    </div>
-                                `;
-                            }
-                            return '<span class="text-gray-400">-</span>';
                         }
                     },
                     { 
@@ -483,14 +468,15 @@
                         table.ajax.reload();
                         
                         // Show success message
-                        const successMsg = $('<div class="mb-6 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-l-4 border-green-500 text-green-800 dark:text-green-200 px-5 py-4 rounded-r-lg shadow-md"><div class="flex items-center"><svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg><span class="font-medium">Form restored successfully.</span></div></div>');
+                        const message = response.message || 'Forms restored successfully.';
+                        const successMsg = $('<div class="mb-6 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-l-4 border-green-500 text-green-800 dark:text-green-200 px-5 py-4 rounded-r-lg shadow-md"><div class="flex items-center"><svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg><span class="font-medium">' + message + '</span></div></div>');
                         $('main').prepend(successMsg);
                         
                         setTimeout(() => {
                             successMsg.fadeOut(300, function() {
                                 $(this).remove();
                             });
-                        }, 3000);
+                        }, 5000);
                     },
                     error: function(xhr) {
                         let errorMsg = 'Failed to restore form.';

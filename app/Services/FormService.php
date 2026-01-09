@@ -515,9 +515,21 @@ class FormService
         $orderColumn = $request->get('order')[0]['column'] ?? 0;
         $orderDir = $request->get('order')[0]['dir'] ?? 'desc';
 
-        // Column mapping (index 0 is row number, 1=item_name, 2=client_name, 3=project_name, 4=created_at, 5=actions)
-        $columns = [null, 'item_name', 'client_name', 'project_name', 'created_at', null];
-        $orderBy = $columns[$orderColumn] ?? 'id';
+        // Column mapping (index 0 is row number, 1=client_name, 2=project_name, 3=actions)
+        $columns = [null, 'client_name', 'project_name', null];
+        $orderBy = $columns[$orderColumn] ?? 'id'; // Default to 'id' for latest first
+
+        // Apply filter parameters
+        $clientName = $request->get('client_name');
+        $projectName = $request->get('project_name');
+
+        if (!empty($clientName)) {
+            $query->where('client_name', 'like', "%{$clientName}%");
+        }
+
+        if (!empty($projectName)) {
+            $query->where('project_name', 'like', "%{$projectName}%");
+        }
 
         // Apply search filter
         if (!empty($search)) {
@@ -529,15 +541,41 @@ class FormService
             });
         }
 
-        // Get total records
-        $totalRecords = Form::onlyTrashed()->count();
-        $filteredRecords = $query->count();
+        // Get all forms matching the filters (before pagination)
+        $allForms = $query->get();
 
-        // Apply ordering and pagination
-        $forms = $query->orderBy($orderBy, $orderDir)
-            ->skip($start)
-            ->take($length)
-            ->get();
+        // Filter collection to get unique combinations of client_name and project_name
+        // Get the latest form (highest ID) for each unique combination
+        $uniqueForms = $allForms->groupBy(function ($form) {
+            return $form->client_name . '|' . $form->project_name;
+        })->map(function ($group) {
+            // Always get the latest form from each group (highest ID)
+            return $group->sortByDesc('id')->first();
+        })->values();
+
+        // Sort the unique forms collection based on orderBy
+        if ($orderBy && in_array($orderBy, ['id', 'client_name', 'project_name', 'created_at'])) {
+            if ($orderDir === 'desc') {
+                $uniqueForms = $uniqueForms->sortByDesc($orderBy)->values();
+            } else {
+                $uniqueForms = $uniqueForms->sortBy($orderBy)->values();
+            }
+        } else {
+            // Default sort by ID descending (latest first)
+            $uniqueForms = $uniqueForms->sortByDesc('id')->values();
+        }
+
+        // Get total unique records count (all deleted forms, not filtered)
+        $totalRecords = Form::onlyTrashed()
+            ->select('client_name', 'project_name')
+            ->distinct()
+            ->count();
+
+        // Get filtered unique records count (after applying search/filters)
+        $filteredRecords = $uniqueForms->count();
+
+        // Apply pagination to the filtered collection
+        $forms = $uniqueForms->slice($start, $length)->values();
 
         // Format data for DataTables
         $data = $forms->map(function ($form) {
@@ -551,7 +589,7 @@ class FormService
         });
 
         return [
-            'draw' => intval($request->get('draw')),
+            'draw' => intval($request->get('draw', 1)),
             'recordsTotal' => $totalRecords,
             'recordsFiltered' => $filteredRecords,
             'data' => $data,
@@ -575,6 +613,44 @@ class FormService
 
             DB::commit();
             return $form;
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
+    }
+
+    /**
+     * Restore all deleted forms with the same client_name and project_name.
+     */
+    public function restoreFormsByProject(string $clientName, string $projectName): int
+    {
+        DB::beginTransaction();
+        try {
+            // Get all deleted forms with matching client_name and project_name
+            $forms = Form::onlyTrashed()
+                ->where('client_name', $clientName)
+                ->where('project_name', $projectName)
+                ->get();
+
+            if ($forms->isEmpty()) {
+                DB::rollBack();
+                throw new \Exception('No deleted forms found with the specified client name and project name.');
+            }
+
+            $restoredCount = 0;
+
+            // Restore all forms and their associated fields
+            foreach ($forms as $form) {
+                // Restore all associated fields first
+                Field::onlyTrashed()->where('form_id', $form->id)->restore();
+
+                // Restore the form
+                $form->restore();
+                $restoredCount++;
+            }
+
+            DB::commit();
+            return $restoredCount;
         } catch (\Exception $e) {
             DB::rollBack();
             throw $e;
