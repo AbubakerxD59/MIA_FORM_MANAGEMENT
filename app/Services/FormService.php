@@ -469,6 +469,62 @@ class FormService
     }
 
     /**
+     * Duplicate all forms with the same group_by value within a project.
+     */
+    public function duplicateGroupByGroupBy(string $clientName, string $projectName, string $groupBy, string $newGroupBy): int
+    {
+        DB::beginTransaction();
+        try {
+            // Get all forms with matching client_name, project_name, and group_by
+            $forms = Form::where('client_name', $clientName)
+                ->where('project_name', $projectName)
+                ->where('group_by', $groupBy)
+                ->with('fields')
+                ->get();
+
+            if ($forms->isEmpty()) {
+                DB::rollBack();
+                throw new \Exception('No forms found with the specified group.');
+            }
+
+            $duplicatedCount = 0;
+
+            // Duplicate each form and its fields with new group_by value
+            foreach ($forms as $originalForm) {
+                // Create a new form with the same data but new group_by
+                $newForm = Form::create([
+                    'item_name' => $originalForm->item_name, // Keep same item names
+                    'unit' => $originalForm->unit,
+                    'rate' => $originalForm->rate,
+                    'group_by' => $newGroupBy, // Use new group name
+                    'client_name' => $originalForm->client_name,
+                    'project_name' => $originalForm->project_name,
+                ]);
+
+                // Duplicate all fields associated with the original form
+                foreach ($originalForm->fields as $originalField) {
+                    $newForm->fields()->create([
+                        'description' => $originalField->description,
+                        'quantity' => $originalField->quantity,
+                        'length' => $originalField->length,
+                        'width' => $originalField->width,
+                        'height' => $originalField->height,
+                        'product' => $originalField->product,
+                    ]);
+                }
+
+                $duplicatedCount++;
+            }
+
+            DB::commit();
+            return $duplicatedCount;
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
+    }
+
+    /**
      * Update client name and project name for all forms with the same client_name and project_name.
      */
     public function updateFormsDetails(string $oldClientName, string $oldProjectName, string $newClientName, string $newProjectName): int
@@ -1108,6 +1164,9 @@ class FormService
             $serialNo++;
         };
 
+        // Track group total row references for grand total calculation
+        $groupTotalRows = [];
+
         // Process grouped forms
         foreach ($groupedForms as $groupByValue => $groupForms) {
             // Add group header row
@@ -1138,6 +1197,9 @@ class FormService
                 $sheet->setCellValue('A' . $dataRow, 'Total Amount');
                 $sheet->setCellValue('F' . $dataRow, $totalFormula);
 
+                // Store the row reference for grand total calculation
+                $groupTotalRows[] = 'F' . $dataRow;
+
                 // Style total row (no background color, with right alignment for total)
                 $totalRowStyle = [
                     'font' => ['bold' => true, 'size' => 11, 'color' => ['rgb' => '000000']],
@@ -1161,9 +1223,274 @@ class FormService
             }
         }
 
+        // Add blank row before grand total if there are groups
+        if (!empty($groupTotalRows)) {
+            $sheet->setCellValue('A' . $dataRow, '');
+            $sheet->getRowDimension($dataRow)->setRowHeight(5);
+            $dataRow++;
+
+            // Add Grand Total row
+            $grandTotalFormula = '=SUM(' . implode(',', $groupTotalRows) . ')';
+            
+            // Merge cells A through E for "Grand Total Amount" label
+            $sheet->mergeCells('A' . $dataRow . ':E' . $dataRow);
+            
+            // Set grand total row
+            $sheet->setCellValue('A' . $dataRow, 'Grand Total Amount');
+            $sheet->setCellValue('F' . $dataRow, $grandTotalFormula);
+
+            // Style grand total row
+            $grandTotalRowStyle = [
+                'font' => ['bold' => true, 'size' => 12, 'color' => ['rgb' => '000000']],
+                'borders' => [
+                    'allBorders' => [
+                        'borderStyle' => Border::BORDER_THIN,
+                        'color' => ['rgb' => '404040']
+                    ]
+                ],
+                'alignment' => [
+                    'horizontal' => Alignment::HORIZONTAL_CENTER,
+                    'vertical' => Alignment::VERTICAL_CENTER
+                ]
+            ];
+            $sheet->getStyle('A' . $dataRow . ':F' . $dataRow)->applyFromArray($grandTotalRowStyle);
+            $sheet->getStyle('A' . $dataRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+            $sheet->getStyle('F' . $dataRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+            $sheet->getStyle('F' . $dataRow)->getNumberFormat()->setFormatCode('#,##0'); // Format as integer
+            $sheet->getRowDimension($dataRow)->setRowHeight(30);
+            $dataRow++;
+        }
+
         // Process ungrouped forms (null or empty group_by)
         foreach ($ungroupedForms as $form) {
             $addDataRow($form, $serialNo);
+        }
+
+        // Set column widths
+        $sheet->getColumnDimension('A')->setWidth(11.5);
+        $sheet->getColumnDimension('B')->setWidth(31);
+        $sheet->getColumnDimension('C')->setWidth(11.5);
+        $sheet->getColumnDimension('D')->setWidth(11.5);
+        $sheet->getColumnDimension('E')->setWidth(11.5);
+        $sheet->getColumnDimension('F')->setWidth(11.5);
+
+        // Set page setup
+        $sheet->getPageSetup()->setPaperSize(PageSetup::PAPERSIZE_A4);
+        $sheet->getPageSetup()->setOrientation(PageSetup::ORIENTATION_PORTRAIT);
+        $sheet->getPageSetup()->setFitToWidth(1);
+        $sheet->getPageSetup()->setFitToHeight(0);
+
+        $lastRow = $dataRow - 1;
+        $sheet->getPageSetup()->setPrintArea('A1:F' . $lastRow);
+
+        // Set margins
+        $sheet->getPageMargins()->setTop(0.5);
+        $sheet->getPageMargins()->setRight(0.5);
+        $sheet->getPageMargins()->setBottom(1.0);
+        $sheet->getPageMargins()->setLeft(0.5);
+
+        // Set page footer
+        $footerText = "&C&12&B MIA CONSTRUCTION\n";
+        $footerText .= "\n&C&10 Consultant - Designer - Estimator - Contractor\n";
+        $footerText .= "&C&10 - 03218600259 -";
+        $sheet->getHeaderFooter()->setOddFooter($footerText);
+        $sheet->getHeaderFooter()->setEvenFooter($footerText);
+    }
+
+    /**
+     * Generate group summary sheet for Excel export.
+     */
+    public function generateGroupSummarySheet($sheet, string $projectName, string $groupBy, $forms, ?string $logoPath): void
+    {
+        $headerRows = 3;
+        $logoMergeCells = 'A1:A3';
+        $logoTotalRowHeight = 60;
+
+        // Add logo image
+        if ($logoPath && file_exists($logoPath)) {
+            // Set column width for A before adding logo
+            $sheet->getColumnDimension('A')->setWidth(11.5);
+
+            $sheet->mergeCells($logoMergeCells);
+            for ($i = 1; $i <= $headerRows; $i++) {
+                $sheet->getRowDimension($i)->setRowHeight(20);
+            }
+
+            $sheet->getStyle($logoMergeCells)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle($logoMergeCells)->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
+
+            $columnWidthPixels = 11.5 * 7;
+            $imageHeight = 70;
+            $imageWidth = $imageHeight;
+            $offsetX = ($columnWidthPixels - $imageWidth) / 2;
+            $offsetY = ($logoTotalRowHeight - $imageHeight) / 2;
+
+            $drawing = new Drawing();
+            $drawing->setName('Monogram');
+            $drawing->setDescription('Monogram');
+            $drawing->setPath($logoPath);
+            $drawing->setHeight($imageHeight);
+            $drawing->setWidth($imageWidth);
+            $drawing->setCoordinates('A1');
+            $drawing->setOffsetX(max(0, $offsetX));
+            $drawing->setOffsetY(max(0, $offsetY));
+            $drawing->setWorksheet($sheet);
+        } else {
+            $sheet->getColumnDimension('A')->setWidth(11.5);
+        }
+
+        // Header Section
+        $row = 1;
+        $sheet->setCellValue('B' . $row, 'PROJECT NAME');
+        $sheet->setCellValue('C' . $row, ucwords(strtolower($projectName)));
+        $row++;
+
+        $sheet->setCellValue('B' . $row, 'ITEM');
+        $sheet->setCellValue('C' . $row, ucwords(strtolower($groupBy)) . ' Summary');
+        $row++;
+
+        // Style header rows
+        $headerLabelStyle = [
+            'font' => ['bold' => true, 'size' => 12, 'color' => ['rgb' => '000000']],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_LEFT,
+                'vertical' => Alignment::VERTICAL_CENTER
+            ]
+        ];
+        $headerValueStyle = [
+            'font' => ['bold' => false, 'size' => 12, 'color' => ['rgb' => '000000']],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_LEFT,
+                'vertical' => Alignment::VERTICAL_CENTER
+            ]
+        ];
+
+        $sheet->getStyle('B1')->applyFromArray($headerLabelStyle);
+        $sheet->getStyle('C1')->applyFromArray($headerValueStyle);
+        $sheet->getStyle('B2')->applyFromArray($headerLabelStyle);
+        $sheet->getStyle('C2')->applyFromArray($headerValueStyle);
+
+        // Add spacing row
+        $spacingRow = $headerRows + 1;
+        $sheet->setCellValue('A' . $spacingRow, '');
+        $sheet->getRowDimension($spacingRow)->setRowHeight(5);
+
+        // Summary Table Header
+        $tableHeaderRow = $spacingRow + 1;
+        $sheet->setCellValue('A' . $tableHeaderRow, 'S. NO');
+        $sheet->setCellValue('B' . $tableHeaderRow, 'DESCRIPTION');
+        $sheet->setCellValue('C' . $tableHeaderRow, 'UNIT');
+        $sheet->setCellValue('D' . $tableHeaderRow, 'TOTAL QTY');
+        $sheet->setCellValue('E' . $tableHeaderRow, 'RATE');
+        $sheet->setCellValue('F' . $tableHeaderRow, 'AMOUNT');
+
+        // Style table header
+        $tableHeaderStyle = [
+            'font' => ['bold' => true, 'size' => 12, 'color' => ['rgb' => '000000']],
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['rgb' => 'b9b9b9']
+            ],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                'vertical' => Alignment::VERTICAL_CENTER
+            ],
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => Border::BORDER_THIN,
+                    'color' => ['rgb' => '404040']
+                ]
+            ]
+        ];
+        $sheet->getStyle('A' . $tableHeaderRow . ':F' . $tableHeaderRow)->applyFromArray($tableHeaderStyle);
+        $sheet->getRowDimension($tableHeaderRow)->setRowHeight(25);
+        $sheet->getStyle('B' . $tableHeaderRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+
+        // Summary Data
+        $dataRow = $tableHeaderRow + 1;
+        $serialNo = 1;
+        $groupFirstDataRow = $dataRow;
+
+        // Helper function to add a data row for a form
+        $addDataRow = function ($form, &$serialNo) use ($sheet, &$dataRow) {
+            // Calculate total QTY (sum of product column, rounded up)
+            $totalQty = ceil($form->fields->sum('product') ?? 0);
+
+            // Calculate amount (total QTY * rate) and round up to integer
+            $rate = $form->rate ?? 0;
+            $amount = ceil($totalQty * $rate);
+
+            $sheet->setCellValue('A' . $dataRow, $serialNo);
+            $sheet->setCellValue('B' . $dataRow, ucwords(strtolower($form->item_name ?? '')));
+            $sheet->setCellValue('C' . $dataRow, $form->unit ?? 'CFT');
+            $sheet->setCellValue('D' . $dataRow, (int)$totalQty);
+            $sheet->setCellValue('E' . $dataRow, $form->rate ?? '');
+            $sheet->setCellValue('F' . $dataRow, (int)$amount);
+
+            // Style data rows
+            $dataStyle = [
+                'font' => ['size' => 11, 'color' => ['rgb' => '000000']],
+                'borders' => [
+                    'allBorders' => [
+                        'borderStyle' => Border::BORDER_THIN,
+                        'color' => ['rgb' => '404040']
+                    ]
+                ],
+                'alignment' => [
+                    'horizontal' => Alignment::HORIZONTAL_CENTER,
+                    'vertical' => Alignment::VERTICAL_CENTER
+                ]
+            ];
+            $sheet->getStyle('A' . $dataRow . ':F' . $dataRow)->applyFromArray($dataStyle);
+            $sheet->getStyle('B' . $dataRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+            $sheet->getStyle('D' . $dataRow)->getNumberFormat()->setFormatCode('0');
+            if ($form->rate !== null) {
+                $sheet->getStyle('E' . $dataRow)->getNumberFormat()->setFormatCode('#,##0.00');
+            }
+            $sheet->getStyle('F' . $dataRow)->getNumberFormat()->setFormatCode('#,##0');
+
+            $dataRow++;
+            $serialNo++;
+        };
+
+        // Add items for this group
+        foreach ($forms as $form) {
+            $addDataRow($form, $serialNo);
+        }
+
+        // Add total row for this group
+        $groupLastDataRow = $dataRow - 1;
+        if ($groupLastDataRow >= $groupFirstDataRow) {
+            // Calculate total amount for this group (sum of column F)
+            $totalFormula = '=SUM(F' . $groupFirstDataRow . ':F' . $groupLastDataRow . ')';
+            
+            // Merge cells A through E for "Total" label
+            $sheet->mergeCells('A' . $dataRow . ':E' . $dataRow);
+            
+            // Set total row
+            $sheet->setCellValue('A' . $dataRow, 'Total Amount');
+            $sheet->setCellValue('F' . $dataRow, $totalFormula);
+
+            // Style total row
+            $totalRowStyle = [
+                'font' => ['bold' => true, 'size' => 11, 'color' => ['rgb' => '000000']],
+                'borders' => [
+                    'allBorders' => [
+                        'borderStyle' => Border::BORDER_THIN,
+                        'color' => ['rgb' => '404040']
+                    ]
+                ],
+                'alignment' => [
+                    'horizontal' => Alignment::HORIZONTAL_CENTER,
+                    'vertical' => Alignment::VERTICAL_CENTER
+                ]
+            ];
+            $sheet->getStyle('A' . $dataRow . ':F' . $dataRow)->applyFromArray($totalRowStyle);
+            $sheet->getStyle('A' . $dataRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+            $sheet->getStyle('F' . $dataRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+            $sheet->getStyle('F' . $dataRow)->getNumberFormat()->setFormatCode('#,##0');
+            $sheet->getRowDimension($dataRow)->setRowHeight(25);
+            $dataRow++;
         }
 
         // Set column widths
@@ -1225,15 +1552,70 @@ class FormService
         $summarySheet->setTitle('Summary');
         $this->generateSummarySheet($summarySheet, $projectName, $forms, $logoPath);
 
-        // Create a sheet for each form
-        foreach ($forms as $index => $form) {
+        // Separate forms into grouped and ungrouped
+        $groupedForms = [];
+        $ungroupedForms = [];
+
+        foreach ($forms as $form) {
+            $groupBy = $form->group_by;
+            if (empty($groupBy) || $groupBy === null) {
+                $ungroupedForms[] = $form;
+            } else {
+                if (!isset($groupedForms[$groupBy])) {
+                    $groupedForms[$groupBy] = [];
+                }
+                $groupedForms[$groupBy][] = $form;
+            }
+        }
+
+        // Sort groups by group_by value
+        ksort($groupedForms);
+
+        $sheetIndex = 1; // Start from 1 since Summary is at 0
+
+        // Process each group
+        foreach ($groupedForms as $groupBy => $groupForms) {
+            // Create group summary sheet
+            $sanitizedGroupName = preg_replace('/[:\/\\?*\[\]]/', '-', $groupBy);
+            $groupSummaryTitle = substr($sanitizedGroupName . ' - Summary', 0, 31);
+            
+            $groupSummarySheet = new \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet($spreadsheet, $groupSummaryTitle);
+            $spreadsheet->addSheet($groupSummarySheet, $sheetIndex);
+            $groupSummarySheet->setTitle($groupSummaryTitle);
+            $this->generateGroupSummarySheet($groupSummarySheet, $projectName, $groupBy, $groupForms, $logoPath);
+            $sheetIndex++;
+
+            // Create a sheet for each form in this group
+            foreach ($groupForms as $form) {
+                // Sanitize sheet title - Excel doesn't allow: : \ / ? * [ ]
+                $rawTitle = $form->item_name ?? 'Sheet' . $sheetIndex;
+                $sanitizedTitle = preg_replace('/[:\/\\?*\[\]]/', '-', $rawTitle);
+                $sheetTitle = substr($sanitizedTitle, 0, 31);
+
+                $sheet = new \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet($spreadsheet, $sheetTitle);
+                $spreadsheet->addSheet($sheet, $sheetIndex);
+                $sheet->setTitle($sheetTitle);
+
+                // Generate the form sheet with configuration for multi-item export
+                $this->generateFormSheet($sheet, $form, $logoPath, [
+                    'headerRows' => 3,
+                    'includeClientName' => false,
+                    'logoMergeCells' => 'A1:A3',
+                    'logoTotalRowHeight' => 60,
+                ]);
+                $sheetIndex++;
+            }
+        }
+
+        // Create sheets for ungrouped forms
+        foreach ($ungroupedForms as $form) {
             // Sanitize sheet title - Excel doesn't allow: : \ / ? * [ ]
-            $rawTitle = $form->item_name ?? 'Sheet' . ($index + 1);
+            $rawTitle = $form->item_name ?? 'Sheet' . $sheetIndex;
             $sanitizedTitle = preg_replace('/[:\/\\?*\[\]]/', '-', $rawTitle);
             $sheetTitle = substr($sanitizedTitle, 0, 31);
 
             $sheet = new \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet($spreadsheet, $sheetTitle);
-            $spreadsheet->addSheet($sheet, $index + 1); // Start from index 1 since Summary is at 0
+            $spreadsheet->addSheet($sheet, $sheetIndex);
             $sheet->setTitle($sheetTitle);
 
             // Generate the form sheet with configuration for multi-item export
@@ -1243,6 +1625,7 @@ class FormService
                 'logoMergeCells' => 'A1:A3',
                 'logoTotalRowHeight' => 60,
             ]);
+            $sheetIndex++;
         }
 
         // Set active sheet to Summary (first one)

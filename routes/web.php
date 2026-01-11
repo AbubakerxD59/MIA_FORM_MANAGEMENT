@@ -33,6 +33,9 @@ Route::middleware('auth')->group(function () {
     // Form Duplicate Route
     Route::post('forms/duplicate', [FormController::class, 'duplicate'])->name('forms.duplicate');
 
+    // Form Duplicate Group Route
+    Route::post('forms/duplicate-group', [FormController::class, 'duplicateGroup'])->name('forms.duplicate-group');
+
     // Form Update Details Route
     Route::post('forms/update-details', [FormController::class, 'updateDetails'])->name('forms.update-details');
 

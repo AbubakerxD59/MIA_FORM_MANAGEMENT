@@ -441,6 +441,55 @@
             </div>
         </main>
 
+        <!-- Duplicate Group Modal -->
+        <div id="duplicateGroupModal"
+            class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full transform transition-all">
+                <div class="p-6">
+                    <div class="flex items-center mb-4">
+                        <div
+                            class="flex-shrink-0 w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center">
+                            <svg class="w-6 h-6 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="ml-4 text-xl font-bold text-gray-900 dark:text-white">Duplicate Group</h3>
+                    </div>
+                    <p class="text-gray-600 dark:text-gray-300 mb-4">
+                        Enter a new name for the duplicated group. All items in the group will be duplicated with the same item names.
+                    </p>
+                    <div class="mb-4">
+                        <label for="newGroupNameInput"
+                            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Original Group Name
+                        </label>
+                        <input type="text" id="originalGroupNameDisplay" readonly
+                            class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 cursor-not-allowed">
+                    </div>
+                    <div class="mb-6">
+                        <label for="newGroupNameInput"
+                            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            New Group Name <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" id="newGroupNameInput" 
+                            placeholder="Enter new group name"
+                            class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
+                    </div>
+                    <div class="flex justify-end space-x-3">
+                        <button id="cancelDuplicateGroup"
+                            class="px-5 py-2.5 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors font-medium">
+                            Cancel
+                        </button>
+                        <button id="confirmDuplicateGroup"
+                            class="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-lg hover:from-indigo-700 hover:to-indigo-800 transition-all font-medium shadow-lg">
+                            Duplicate
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Delete Item Confirmation Modal -->
         <div id="deleteItemModal"
             class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
@@ -1118,16 +1167,23 @@
                                     const groupId = 'group-' + item.group_by.replace(/[^a-zA-Z0-9]/g, '-');
                                     const groupHtml = `
                                 <div class="mb-2">
-                                    <div class="flex items-center justify-between p-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-200 dark:border-indigo-700 cursor-pointer group-header"
-                                         onclick="toggleGroup('${groupId}')"
+                                    <div class="flex items-center justify-between p-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-200 dark:border-indigo-700 group-header"
                                          data-group-id="${groupId}">
-                                        <div class="flex items-center">
+                                        <div class="flex items-center flex-1 cursor-pointer" onclick="toggleGroup('${groupId}')">
                                             <svg class="w-4 h-4 mr-2 text-indigo-600 dark:text-indigo-400 group-arrow transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                                             </svg>
                                             <span class="text-sm font-semibold text-indigo-700 dark:text-indigo-300">${item.group_by}</span>
                                             <span class="ml-2 text-xs text-indigo-600 dark:text-indigo-400">(${item.items.length})</span>
                                         </div>
+                                        <button type="button" 
+                                            onclick="event.stopPropagation(); confirmDuplicateGroup('${item.group_by.replace(/'/g, "\\'")}')"
+                                            class="ml-2 p-1.5 text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 rounded transition-colors"
+                                            title="Duplicate group">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                                            </svg>
+                                        </button>
                                     </div>
                                     <div id="${groupId}" class="hidden mt-1 ml-4 space-y-2 group-items">
                                         ${item.items.map(function(subItem) {
@@ -1599,6 +1655,116 @@
                         calculateProduct(input);
                     }
                 });
+        });
+
+        // Duplicate group functionality
+        let groupToDuplicate = null;
+
+        function confirmDuplicateGroup(groupBy) {
+            groupToDuplicate = groupBy;
+            const modal = document.getElementById('duplicateGroupModal');
+            document.getElementById('originalGroupNameDisplay').value = groupBy;
+            document.getElementById('newGroupNameInput').value = '';
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            
+            // Focus on input after modal is shown
+            setTimeout(() => {
+                document.getElementById('newGroupNameInput').focus();
+            }, 100);
+        }
+
+        // Cancel duplicate group
+        document.getElementById('cancelDuplicateGroup').addEventListener('click', function() {
+            const modal = document.getElementById('duplicateGroupModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            groupToDuplicate = null;
+        });
+
+        // Close modal on outside click
+        document.getElementById('duplicateGroupModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.classList.add('hidden');
+                this.classList.remove('flex');
+                groupToDuplicate = null;
+            }
+        });
+
+        // Handle Enter key in new group name input
+        document.getElementById('newGroupNameInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('confirmDuplicateGroup').click();
+            }
+        });
+
+        // Confirm duplicate group
+        document.getElementById('confirmDuplicateGroup').addEventListener('click', function() {
+            if (!groupToDuplicate) {
+                return;
+            }
+
+            const newGroupName = document.getElementById('newGroupNameInput').value.trim();
+
+            if (!newGroupName) {
+                alert('Please enter a new group name.');
+                return;
+            }
+
+            const confirmBtn = this;
+            const originalText = confirmBtn.textContent;
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = 'Duplicating...';
+
+            const clientName = $('#client_name').val();
+            const projectName = $('#project_name').val();
+
+            $.ajax({
+                url: '{{ route('forms.duplicate-group') }}',
+                method: 'POST',
+                data: {
+                    client_name: clientName,
+                    project_name: projectName,
+                    group_by: groupToDuplicate,
+                    new_group_by: newGroupName,
+                    _token: $('meta[name="csrf-token"]').attr('content')
+                },
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                },
+                success: function(response) {
+                    const modal = document.getElementById('duplicateGroupModal');
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+
+                    // Refresh sidebar to show new duplicated group
+                    refreshSidebar();
+
+                    // Show success message
+                    showSuccessMessage(response.message || 'Group duplicated successfully!');
+
+                    groupToDuplicate = null;
+                    confirmBtn.disabled = false;
+                    confirmBtn.textContent = originalText;
+                },
+                error: function(xhr) {
+                    confirmBtn.disabled = false;
+                    confirmBtn.textContent = originalText;
+
+                    let errorMessage = 'Failed to duplicate group. Please try again.';
+                    if (xhr.responseJSON && xhr.responseJSON.error) {
+                        errorMessage = xhr.responseJSON.error;
+                    } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMessage = xhr.responseJSON.message;
+                    }
+
+                    alert(errorMessage);
+                    console.error('Error duplicating group:', xhr);
+                }
+            });
         });
 
         // Delete item functionality

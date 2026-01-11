@@ -659,6 +659,52 @@ class FormController extends Controller
     }
 
     /**
+     * Duplicate all forms with the same group_by value within a project.
+     */
+    public function duplicateGroup(Request $request): JsonResponse|\Illuminate\Http\RedirectResponse
+    {
+        $validated = $request->validate([
+            'client_name' => 'required|string',
+            'project_name' => 'required|string',
+            'group_by' => 'required|string',
+            'new_group_by' => 'required|string',
+        ]);
+
+        try {
+            $duplicatedCount = $this->formService->duplicateGroupByGroupBy(
+                $validated['client_name'],
+                $validated['project_name'],
+                $validated['group_by'],
+                $validated['new_group_by']
+            );
+            $message = "Group duplicated successfully. {$duplicatedCount} items have been duplicated with the new group name.";
+
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $message,
+                    'duplicated_count' => $duplicatedCount
+                ]);
+            }
+
+            return redirect()->route('forms.edit', [
+                'client_name' => $validated['client_name'],
+                'project_name' => $validated['project_name']
+            ])->with('success', $message);
+        } catch (\Exception $e) {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Failed to duplicate group: ' . $e->getMessage()
+                ], 500);
+            }
+
+            return redirect()->route('forms.index')
+                ->with('error', $e->getMessage());
+        }
+    }
+
+    /**
      * Update client name and project name for all forms with the same client_name and project_name.
      */
     public function updateDetails(Request $request): JsonResponse
