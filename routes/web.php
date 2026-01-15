@@ -1,9 +1,11 @@
 <?php
 
-use App\Http\Controllers\FormController;
-use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Artisan;
+use App\Http\Controllers\FormController;
+use App\Http\Controllers\InvoiceController;
+use App\Http\Controllers\ProfileController;
 
 Route::get('/', function () {
     if (Auth::check()) {
@@ -72,12 +74,29 @@ Route::middleware('auth')->group(function () {
     Route::post('api/formulas', [FormController::class, 'storeFormula'])->name('api.store-formula');
     Route::put('api/formulas/{formula}', [FormController::class, 'updateFormula'])->name('api.update-formula');
     Route::delete('api/formulas/{formula}', [FormController::class, 'deleteFormula'])->name('api.delete-formula');
+
+    // ============================================
+    // Invoice Routes
+    // ============================================
+    Route::resource('invoices', InvoiceController::class);
+    Route::get('invoices/{invoice}/export', [InvoiceController::class, 'export'])->name('invoices.export');
+
+    // Invoice API Routes
+    Route::get('api/invoices/{invoice}/summaries', [InvoiceController::class, 'getInvoiceSummaries'])->name('api.invoice-summaries');
+    Route::post('api/invoices/{invoice}/summaries', [InvoiceController::class, 'saveInvoiceSummaries'])->name('api.save-invoice-summaries');
+    Route::post('api/invoices/create-item', [InvoiceController::class, 'createInvoiceItem'])->name('api.create-invoice-item');
+    Route::put('api/invoices/items/{invoiceItem}', [InvoiceController::class, 'updateInvoiceItem'])->name('api.update-invoice-item');
+    Route::delete('api/invoices/items/{invoiceItem}', [InvoiceController::class, 'deleteInvoiceItem'])->name('api.delete-invoice-item');
+    Route::post('api/invoices/create-rate', [InvoiceController::class, 'createInvoiceRate'])->name('api.create-invoice-rate');
+    Route::put('api/invoices/rates/{invoiceRate}', [InvoiceController::class, 'updateInvoiceRate'])->name('api.update-invoice-rate');
+    Route::delete('api/invoices/rates/{invoiceRate}', [InvoiceController::class, 'deleteInvoiceRate'])->name('api.delete-invoice-rate');
+    Route::get('api/invoice-rates', [InvoiceController::class, 'getInvoiceRates'])->name('api.invoice-rates');
 });
 
-Route::get('/clear', function() {
+Route::get('/clear', function () {
     Artisan::call('config:clear');
     Artisan::call('view:clear');
     return "Cache cleared!";
 });
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';

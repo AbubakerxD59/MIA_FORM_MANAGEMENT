@@ -5,7 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Forms Management - {{ config('app.name', 'Laravel') }}</title>
+    <title>Invoices Management - {{ config('app.name', 'Laravel') }}</title>
 
     <!-- DataTables CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
@@ -158,12 +158,12 @@
         }
 
         /* Table Styling */
-        #formsTable {
+        #invoicesTable {
             border-collapse: separate;
             border-spacing: 0;
         }
 
-        #formsTable thead th {
+        #invoicesTable thead th {
             background: #f9fafb;
             color: #374151;
             font-weight: 600;
@@ -174,125 +174,29 @@
             border-bottom: 2px solid #e5e7eb;
         }
 
-        .dark #formsTable thead th {
+        .dark #invoicesTable thead th {
             background: #111827;
             color: #d1d5db;
             border-bottom-color: #374151;
         }
 
-        #formsTable tbody td {
+        #invoicesTable tbody td {
             padding: 1rem;
             border-bottom: 1px solid #e5e7eb;
             color: #374151;
         }
 
-        .dark #formsTable tbody td {
+        .dark #invoicesTable tbody td {
             border-bottom-color: #374151;
             color: #d1d5db;
         }
 
-        #formsTable tbody tr:hover {
+        #invoicesTable tbody tr:hover {
             background: #f9fafb;
         }
 
-        .dark #formsTable tbody tr:hover {
+        .dark #invoicesTable tbody tr:hover {
             background: #1f2937;
-        }
-
-        /* Action Buttons */
-        .btn-action {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0.5rem 0.75rem;
-            font-size: 0.875rem;
-            font-weight: 500;
-            border-radius: 0.5rem;
-            transition: all 0.2s;
-            gap: 0.375rem;
-        }
-
-        .btn-action:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        }
-
-        .btn-action svg {
-            width: 1rem;
-            height: 1rem;
-        }
-
-        /* Action Dropdown Menu */
-        .action-dropdown {
-            position: relative;
-        }
-
-        .action-dropdown-menu {
-            position: absolute;
-            right: 0;
-            margin-top: 0.5rem;
-            width: 14rem;
-            border-radius: 0.375rem;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            background-color: white;
-            z-index: 50;
-        }
-
-        .dark .action-dropdown-menu {
-            background-color: #1f2937;
-        }
-
-        .action-dropdown-item {
-            display: flex;
-            align-items: center;
-            padding: 0.5rem 1rem;
-            font-size: 0.875rem;
-            color: #374151;
-            transition: background-color 0.15s ease-in-out;
-        }
-
-        .dark .action-dropdown-item {
-            color: #d1d5db;
-        }
-
-        .action-dropdown-item:hover {
-            background-color: #f3f4f6;
-        }
-
-        .dark .action-dropdown-item:hover {
-            background-color: #374151;
-        }
-
-        /* Loading Spinner */
-        .dataTables_processing {
-            background: rgba(255, 255, 255, 0.9) !important;
-            border-radius: 0.5rem;
-            padding: 2rem !important;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-        }
-
-        .dark .dataTables_processing {
-            background: rgba(31, 41, 55, 0.9) !important;
-        }
-
-        .spinner {
-            border: 3px solid #f3f4f6;
-            border-top: 3px solid #3b82f6;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto;
-        }
-
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(360deg);
-            }
         }
     </style>
 </head>
@@ -334,19 +238,10 @@
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
                     <div class="flex items-center justify-between">
                         <div>
-                            <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-1">Forms Management</h1>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">Manage and organize your forms</p>
+                            <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-1">Invoices Management</h1>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Manage and organize your invoices</p>
                         </div>
                         <div class="flex items-center space-x-3">
-                            <a href="{{ route('forms.deleted') }}"
-                                class="inline-flex items-center px-5 py-3 bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105">
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
-                                    </path>
-                                </svg>
-                                Restore Forms
-                            </a>
                             <x-user-dropdown />
                         </div>
                     </div>
@@ -385,13 +280,13 @@
                 </div>
             @endif
 
-            <!-- Create Form -->
+            <!-- Create Invoice -->
             <div
                 class="mb-6 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6">
                 <div class="mb-4">
-                    <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Create New Form</h2>
+                    <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Create New Invoice</h2>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Enter client name and project name to create a
-                        new form</p>
+                        new invoice</p>
                 </div>
                 <form id="createForm" class="flex flex-col sm:flex-row gap-4 items-end">
                     @csrf
@@ -416,7 +311,7 @@
                     <div class="w-full sm:w-auto">
                         <button type="submit" id="createFormBtn"
                             class="w-full sm:w-auto px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition-colors duration-200">
-                            Create Form
+                            Create Invoice
                         </button>
                     </div>
                 </form>
@@ -427,12 +322,12 @@
                 class="bg-white/70 dark:bg-gray-800/70 backdrop-blur-lg rounded-2xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 overflow-hidden">
                 <div class="p-6">
                     <div class="mb-6">
-                        <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">All Forms</h2>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">View and manage all your forms in one place
+                        <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">All Invoices</h2>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">View and manage all your invoices in one place
                         </p>
                     </div>
 
-                    <table id="formsTable" class="w-full" style="width:100%">
+                    <table id="invoicesTable" class="w-full" style="width:100%">
                         <thead>
                             <tr>
                                 <th>ID</th>
@@ -469,8 +364,7 @@
                     <h3 class="ml-4 text-xl font-bold text-gray-900 dark:text-white">Confirm Delete</h3>
                 </div>
                 <p class="text-gray-600 dark:text-gray-300 mb-6" id="deleteModalMessage">Are you sure you want to
-                    delete this form? This action
-                    cannot be undone and all associated fields will be deleted.</p>
+                    delete this invoice? This action cannot be undone.</p>
                 <div class="flex justify-end space-x-3">
                     <button id="cancelDelete"
                         class="px-5 py-2.5 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors font-medium">
@@ -479,8 +373,6 @@
                     <form id="deleteForm" method="POST" class="inline">
                         @csrf
                         @method('DELETE')
-                        <input type="hidden" id="deleteClientName" name="client_name" value="">
-                        <input type="hidden" id="deleteProjectName" name="project_name" value="">
                         <button type="submit"
                             class="px-5 py-2.5 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-700 hover:to-red-800 transition-all font-medium shadow-lg">
                             Delete
@@ -499,7 +391,7 @@
     <script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
 
     <script>
-        let formsTable;
+        let invoicesTable;
 
         $(document).ready(function() {
             // Setup CSRF token for AJAX requests
@@ -520,12 +412,10 @@
                 const formData = {
                     client_name: $('#create_client_name').val(),
                     project_name: $('#create_project_name').val(),
-                    item_name: null,
-                    fields: []
                 };
 
                 $.ajax({
-                    url: '{{ route('forms.store') }}',
+                    url: '{{ route('invoices.store') }}',
                     method: 'POST',
                     data: formData,
                     headers: {
@@ -540,11 +430,11 @@
                         $('#createForm')[0].reset();
 
                         // Show success message
-                        showSuccessMessage('Form created successfully!');
+                        showSuccessMessage('Invoice created successfully!');
 
-                        // Reload DataTable to show the new form (latest first)
-                        if (formsTable) {
-                            formsTable.ajax.reload(null, false);
+                        // Reload DataTable to show the new invoice
+                        if (invoicesTable) {
+                            invoicesTable.ajax.reload(null, false);
                         }
                     },
                     error: function(xhr) {
@@ -587,16 +477,13 @@
             }
 
             // Initialize DataTable
-            formsTable = $('#formsTable').DataTable({
+            invoicesTable = $('#invoicesTable').DataTable({
                 processing: true,
                 serverSide: true,
                 responsive: true,
                 ajax: {
-                    url: "{{ route('forms.index') }}",
+                    url: "{{ route('invoices.index') }}",
                     type: 'GET',
-                    data: function(d) {
-                        // No filter parameters needed
-                    }
                 },
                 columns: [{
                         data: null,
@@ -605,7 +492,6 @@
                         searchable: false,
                         width: '5%',
                         render: function(data, type, row, meta) {
-                            // Calculate row number based on current page and row index
                             return `<span class="font-semibold text-blue-600 dark:text-blue-400">#${meta.row + meta.settings._iDisplayStart + 1}</span>`;
                         }
                     },
@@ -631,8 +517,6 @@
                         width: '15%',
                         className: 'text-center',
                         render: function(data, type, row) {
-                            const clientName = encodeURIComponent(row.client_name || '');
-                            const projectName = encodeURIComponent(row.project_name || '');
                             const rowId = `action-menu-${row.id}`;
                             return `
                                 <div class="relative inline-block text-left">
@@ -650,7 +534,7 @@
                                     <div id="${rowId}" 
                                          class="hidden absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 z-50">
                                         <div class="py-1" role="menu">
-                                            <a href="/forms/project/edit?client_name=${clientName}&project_name=${projectName}" 
+                                            <a href="/invoices/${row.id}/edit" 
                                                onclick="closeActionMenu('${rowId}')"
                                                class="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700" role="menuitem">
                                                 <svg class="w-4 h-4 mr-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -658,35 +542,16 @@
                                                 </svg>
                                                 Edit
                                             </a>
-                                            <a href="/forms/bbs/${row.id}" 
+                                            <a href="/invoices/${row.id}/export" 
                                                onclick="closeActionMenu('${rowId}')"
                                                class="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700" role="menuitem">
-                                                <svg class="w-4 h-4 mr-3 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-                                                </svg>
-                                                BBS
-                                            </a>
-                                            <a href="/forms/project/export?client_name=${clientName}&project_name=${projectName}" 
-                                               onclick="closeActionMenu('${rowId}')"
-                                               class="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 export-btn"
-                                               data-client-name="${row.client_name || ''}"
-                                               data-project-name="${row.project_name || ''}"
-                                               role="menuitem">
                                                 <svg class="w-4 h-4 mr-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                                 </svg>
                                                 Export
                                             </a>
-                                            <button onclick="duplicateForm('${clientName}', '${projectName}'); closeActionMenu('${rowId}');" 
-                                                    class="w-full flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700" 
-                                                    role="menuitem">
-                                                <svg class="w-4 h-4 mr-3 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-                                                </svg>
-                                                Duplicate
-                                            </button>
                                             <div class="border-t border-gray-200 dark:border-gray-600"></div>
-                                            <button onclick="confirmDeleteByProject('${clientName}', '${projectName}'); closeActionMenu('${rowId}');" 
+                                            <button onclick="confirmDelete(${row.id}); closeActionMenu('${rowId}');" 
                                                     class="w-full flex items-center px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700" 
                                                     role="menuitem">
                                                 <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -703,7 +568,7 @@
                 ],
                 order: [
                     [0, 'desc']
-                ], // Order by ID (row number) - latest first
+                ],
                 pageLength: 25,
                 lengthMenu: [
                     [25, 50, 100, 200],
@@ -723,46 +588,16 @@
                     }
                 },
                 dom: '<"flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6"<"mb-4 sm:mb-0"l><"w-full sm:w-auto"f>>rt<"flex flex-col sm:flex-row justify-between items-start sm:items-center mt-6"<"mb-4 sm:mb-0"i><"w-full sm:w-auto"p>>',
-                drawCallback: function() {
-                    // Apply dark mode classes if needed
-                    if (document.documentElement.classList.contains('dark')) {
-                        $('.dataTables_wrapper').addClass('dark');
-                    }
-
-                    // Ensure pagination buttons are inline and styled
-                    $('.dataTables_paginate').css({
-                        'display': 'flex',
-                        'flex-direction': 'row',
-                        'align-items': 'center',
-                        'justify-content': 'center',
-                        'gap': '0.5rem',
-                        'flex-wrap': 'wrap'
-                    });
-
-                    // Style pagination buttons
-                    $('.dataTables_paginate .paginate_button').each(function() {
-                        if ($(this).hasClass('previous') || $(this).hasClass('next')) {
-                            $(this).css({
-                                'font-size': '1.125rem',
-                                'font-weight': '600',
-                                'min-width': '2.5rem',
-                                'height': '2.5rem'
-                            });
-                        }
-                    });
-                }
             });
 
             // Toggle action menu
             window.toggleActionMenu = function(menuId) {
-                // Close all other menus first
                 document.querySelectorAll('[id^="action-menu-"]').forEach(menu => {
                     if (menu.id !== menuId) {
                         menu.classList.add('hidden');
                     }
                 });
                 
-                // Toggle the clicked menu
                 const menu = document.getElementById(menuId);
                 if (menu) {
                     menu.classList.toggle('hidden');
@@ -786,129 +621,29 @@
                 }
             });
 
-            // Duplicate form function
-            window.duplicateForm = function(clientName, projectName) {
-                if (!confirm(
-                        `Are you sure you want to duplicate all forms for client "${decodeURIComponent(clientName)}" and project "${decodeURIComponent(projectName)}"?`
-                        )) {
-                    return;
-                }
-
-                const formData = {
-                    client_name: decodeURIComponent(clientName),
-                    project_name: decodeURIComponent(projectName)
-                };
-
-                fetch('{{ route('forms.duplicate') }}', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute(
-                                'content'),
-                            'X-Requested-With': 'XMLHttpRequest'
-                        },
-                        body: JSON.stringify(formData)
-                    })
-                    .then(response => {
-                        if (!response.ok) {
-                            return response.json().then(err => {
-                                throw new Error(err.error || err.message ||
-                                    'Failed to duplicate forms');
-                            });
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        // Reload DataTable
-                        if (formsTable) {
-                            formsTable.ajax.reload(null, false);
-                        }
-
-                        // Show success message
-                        showSuccessMessage(data.message || 'Forms duplicated successfully!');
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert(error.message || 'An error occurred while duplicating the forms.');
-                    });
-            };
-
-            // Reset delete button state
-            function resetDeleteButton() {
-                const submitBtn = document.querySelector('#deleteForm button[type="submit"]');
-                if (submitBtn) {
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = 'Delete';
-                }
-            }
-
-            // Delete confirmation function for project-based delete
-            window.confirmDeleteByProject = function(clientName, projectName) {
-                // Reset button state when opening modal
-                resetDeleteButton();
-
-                const form = document.getElementById('deleteForm');
-                form.action = '{{ route('forms.delete-by-project') }}';
-                document.getElementById('deleteClientName').value = decodeURIComponent(clientName);
-                document.getElementById('deleteProjectName').value = decodeURIComponent(projectName);
-
-                // Update modal message
-                const decodedClientName = decodeURIComponent(clientName);
-                const decodedProjectName = decodeURIComponent(projectName);
-                document.getElementById('deleteModalMessage').textContent =
-                    `Are you sure you want to delete ALL forms for client "${decodedClientName}" and project "${decodedProjectName}"? This action cannot be undone and all associated fields will be deleted.`;
-
-                const modal = document.getElementById('deleteModal');
-                modal.classList.remove('hidden');
-                modal.classList.add('flex');
-                setTimeout(() => {
-                    modal.querySelector('div').classList.add('scale-100');
-                }, 10);
-            };
-
-            // Delete confirmation function (kept for backwards compatibility)
+            // Delete confirmation function
             window.confirmDelete = function(id) {
-                // Reset button state when opening modal
-                resetDeleteButton();
-
                 const form = document.getElementById('deleteForm');
-                form.action = `/forms/${id}`;
-                document.getElementById('deleteClientName').value = '';
-                document.getElementById('deleteProjectName').value = '';
+                form.action = `/invoices/${id}`;
                 document.getElementById('deleteModalMessage').textContent =
-                    'Are you sure you want to delete this form? This action cannot be undone and all associated fields will be deleted.';
+                    'Are you sure you want to delete this invoice? This action cannot be undone.';
                 const modal = document.getElementById('deleteModal');
                 modal.classList.remove('hidden');
                 modal.classList.add('flex');
-                setTimeout(() => {
-                    modal.querySelector('div').classList.add('scale-100');
-                }, 10);
             };
 
             // Cancel delete
             document.getElementById('cancelDelete').addEventListener('click', function() {
-                // Reset button state when canceling
-                resetDeleteButton();
-
                 const modal = document.getElementById('deleteModal');
-                modal.querySelector('div').classList.remove('scale-100');
-                setTimeout(() => {
-                    modal.classList.add('hidden');
-                    modal.classList.remove('flex');
-                }, 200);
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
             });
 
             // Close modal on outside click
             document.getElementById('deleteModal').addEventListener('click', function(e) {
                 if (e.target === this) {
-                    // Reset button state when closing modal
-                    resetDeleteButton();
-
-                    this.querySelector('div').classList.remove('scale-100');
-                    setTimeout(() => {
-                        this.classList.add('hidden');
-                        this.classList.remove('flex');
-                    }, 200);
+                    this.classList.add('hidden');
+                    this.classList.remove('flex');
                 }
             });
 
@@ -916,7 +651,6 @@
             document.getElementById('deleteForm').addEventListener('submit', function(e) {
                 e.preventDefault();
                 const form = this;
-                const formData = new FormData(form);
                 const submitBtn = form.querySelector('button[type="submit"]');
                 const originalText = submitBtn.textContent;
 
@@ -925,7 +659,7 @@
 
                 fetch(form.action, {
                         method: 'POST',
-                        body: formData,
+                        body: new FormData(form),
                         headers: {
                             'X-Requested-With': 'XMLHttpRequest',
                             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')
@@ -935,52 +669,25 @@
                     .then(response => {
                         if (!response.ok) {
                             return response.json().then(err => {
-                                throw new Error(err.error || err.message ||
-                                    'Failed to delete forms');
+                                throw new Error(err.error || err.message || 'Failed to delete invoice');
                             });
                         }
                         return response.json();
                     })
                     .then(data => {
-                        // Reset button state after successful deletion
-                        resetDeleteButton();
-
                         const modal = document.getElementById('deleteModal');
-                        modal.querySelector('div').classList.remove('scale-100');
-                        setTimeout(() => {
-                            modal.classList.add('hidden');
-                            modal.classList.remove('flex');
-                        }, 200);
+                        modal.classList.add('hidden');
+                        modal.classList.remove('flex');
 
-                        formsTable.ajax.reload();
+                        invoicesTable.ajax.reload();
 
-                        // Show success message
-                        const successMsg = document.createElement('div');
-                        successMsg.className =
-                            'mb-6 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-l-4 border-green-500 text-green-800 dark:text-green-200 px-5 py-4 rounded-r-lg shadow-md';
-                        const message = data.message || 'Forms deleted successfully.';
-                        successMsg.innerHTML = `
-                        <div class="flex items-center">
-                            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                            </svg>
-                            <span class="font-medium">${message}</span>
-                        </div>
-                    `;
-                        document.querySelector('main').insertBefore(successMsg, document.querySelector(
-                            'main').firstChild);
-
-                        setTimeout(() => {
-                            successMsg.style.transition = 'opacity 0.3s';
-                            successMsg.style.opacity = '0';
-                            setTimeout(() => successMsg.remove(), 300);
-                        }, 3000);
+                        showSuccessMessage(data.message || 'Invoice deleted successfully.');
                     })
                     .catch(error => {
                         console.error('Error:', error);
                         submitBtn.disabled = false;
                         submitBtn.textContent = originalText;
-                        alert(error.message || 'An error occurred while deleting the forms.');
+                        alert(error.message || 'An error occurred while deleting the invoice.');
                     });
             });
         });
@@ -988,3 +695,4 @@
 </body>
 
 </html>
+
