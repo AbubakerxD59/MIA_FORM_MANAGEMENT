@@ -178,7 +178,7 @@ class InvoiceService
         return InvoiceRate::create([
             'name' => $data['name'],
             'unit' => $data['unit'] ?? null,
-            'rate' => $data['rate'] ?? null,
+            'rate' => isset($data['rate']) ? (int)$data['rate'] : null,
         ]);
     }
 
@@ -190,7 +190,7 @@ class InvoiceService
         $rate->update([
             'name' => $data['name'],
             'unit' => $data['unit'] ?? null,
-            'rate' => $data['rate'] ?? null,
+            'rate' => isset($data['rate']) ? (int)$data['rate'] : null,
         ]);
         return $rate;
     }
@@ -244,8 +244,8 @@ class InvoiceService
                 if ($summary && $summary->invoice_id == $invoice->id && $summary->item_id == $itemId) {
                     $summary->update([
                         'rate_id' => $summaryData['rate_id'],
-                        'quantity' => $summaryData['quantity'] ?? 0,
-                        'amount' => $summaryData['amount'] ?? 0,
+                        'quantity' => (int)($summaryData['quantity'] ?? 0),
+                        'amount' => (int)($summaryData['amount'] ?? 0),
                         'remarks' => $summaryData['remarks'] ?? null,
                     ]);
                     $savedCount++;
@@ -256,8 +256,8 @@ class InvoiceService
                     'invoice_id' => $invoice->id,
                     'item_id' => $itemId,
                     'rate_id' => $summaryData['rate_id'],
-                    'quantity' => $summaryData['quantity'] ?? 0,
-                    'amount' => $summaryData['amount'] ?? 0,
+                    'quantity' => (int)($summaryData['quantity'] ?? 0),
+                    'amount' => (int)($summaryData['amount'] ?? 0),
                     'remarks' => $summaryData['remarks'] ?? null,
                 ]);
                 $savedCount++;
@@ -505,8 +505,8 @@ class InvoiceService
             $sheet->setCellValue('C' . $dataRow, $summary->invoiceRate->name ?? '');
             $sheet->setCellValue('D' . $dataRow, $summary->invoiceRate->unit ?? '');
             $sheet->setCellValue('E' . $dataRow, number_format($summary->quantity, 0));
-            $sheet->setCellValue('F' . $dataRow, number_format($summary->invoiceRate->rate ?? 0, 2));
-            $sheet->setCellValue('G' . $dataRow, number_format($summary->amount, 2));
+            $sheet->setCellValue('F' . $dataRow, number_format($summary->invoiceRate->rate ?? 0, 0));
+            $sheet->setCellValue('G' . $dataRow, number_format($summary->amount, 0));
             $sheet->setCellValue('H' . $dataRow, $summary->remarks ?? '');
 
             // Accumulate total amount
@@ -530,11 +530,10 @@ class InvoiceService
             $sheet->getStyle('C' . $dataRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
             $sheet->getStyle('H' . $dataRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
 
-            // Format QTY as integer
+            // Format QTY, RATE, and AMOUNT as integers
             $sheet->getStyle('E' . $dataRow)->getNumberFormat()->setFormatCode('0');
-            // Format RATE and AMOUNT as number with 2 decimals
-            $sheet->getStyle('F' . $dataRow)->getNumberFormat()->setFormatCode('#,##0.00');
-            $sheet->getStyle('G' . $dataRow)->getNumberFormat()->setFormatCode('#,##0.00');
+            $sheet->getStyle('F' . $dataRow)->getNumberFormat()->setFormatCode('#,##0');
+            $sheet->getStyle('G' . $dataRow)->getNumberFormat()->setFormatCode('#,##0');
 
             $dataRow++;
         }
@@ -564,7 +563,7 @@ class InvoiceService
         $totalRow = $dataRow;
         $sheet->setCellValue('C' . $totalRow, 'TOTAL AMOUNT');
         $sheet->setCellValue('F' . $totalRow, 'RS');
-        $sheet->setCellValue('G' . $totalRow, number_format($totalAmount, 2));
+        $sheet->setCellValue('G' . $totalRow, number_format($totalAmount, 0));
 
         // Style total row
         $totalRowStyle = [
@@ -582,7 +581,7 @@ class InvoiceService
         ];
         $sheet->getStyle('B' . $totalRow . ':H' . $totalRow)->applyFromArray($totalRowStyle);
         $sheet->getStyle('C' . $totalRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
-        $sheet->getStyle('G' . $totalRow)->getNumberFormat()->setFormatCode('#,##0.00');
+        $sheet->getStyle('G' . $totalRow)->getNumberFormat()->setFormatCode('#,##0');
         $sheet->getRowDimension($totalRow)->setRowHeight(25);
         $dataRow++;
 

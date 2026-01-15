@@ -162,7 +162,7 @@ class InvoiceController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'unit' => 'nullable|string|max:255',
-            'rate' => 'nullable|numeric|min:0',
+            'rate' => 'nullable|integer|min:0',
         ]);
 
         try {
@@ -225,7 +225,7 @@ class InvoiceController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'unit' => 'nullable|string|max:255',
-            'rate' => 'nullable|numeric|min:0',
+            'rate' => 'nullable|integer|min:0',
         ]);
 
         try {
@@ -312,9 +312,9 @@ class InvoiceController extends Controller
             'summaries.*.rate_id' => 'required|exists:invoice_rates,id',
             'summaries.*.description' => 'nullable|string',
             'summaries.*.unit' => 'nullable|string|max:255',
-            'summaries.*.quantity' => 'nullable|numeric|min:0',
-            'summaries.*.rate' => 'nullable|numeric|min:0',
-            'summaries.*.amount' => 'nullable|numeric|min:0',
+            'summaries.*.quantity' => 'nullable|integer|min:0',
+            'summaries.*.rate' => 'nullable|integer|min:0',
+            'summaries.*.amount' => 'nullable|integer|min:0',
             'summaries.*.remarks' => 'nullable|string',
         ]);
 

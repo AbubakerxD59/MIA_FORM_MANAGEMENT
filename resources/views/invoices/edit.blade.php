@@ -387,13 +387,14 @@
                                         <option value="SQM">SQM</option>
                                         <option value="RM">RM</option>
                                         <option value="KG">KG</option>
+                                        <option value="JOB">JOB</option>
                                     </select>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                         Rate
                                     </label>
-                                    <input type="number" id="newRateValue" step="0.01" placeholder="Enter rate"
+                                    <input type="number" id="newRateValue" step="1" placeholder="Enter rate"
                                         class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white">
                                 </div>
                                 <div class="flex gap-3">
@@ -984,26 +985,27 @@
                                 <option value="SQM">SQM</option>
                                 <option value="RM">RM</option>
                                 <option value="KG">KG</option>
+                                <option value="JOB">JOB</option>
                             </select>
                         </td>
                         <td class="text-center">
                             <input type="number" class="qty-input w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-center" 
                                    value="" 
-                                   step="0.01" 
+                                   step="1" 
                                    placeholder="0" 
                                    data-row-index="${i}">
                         </td>
                         <td class="text-center">
                             <input type="number" class="rate-input w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-center" 
                                    value="" 
-                                   step="0.01" 
+                                   step="1" 
                                    placeholder="0" 
                                    data-row-index="${i}">
                         </td>
                         <td class="text-center">
                             <input type="number" class="amount-input w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-center" 
                                    value="0" 
-                                   step="0.01" 
+                                   step="1" 
                                    placeholder="0" 
                                    readonly>
                         </td>
@@ -1053,26 +1055,27 @@
                                         <option value="SQM" ${row && row.unit === 'SQM' ? 'selected' : ''}>SQM</option>
                                         <option value="RM" ${row && row.unit === 'RM' ? 'selected' : ''}>RM</option>
                                         <option value="KG" ${row && row.unit === 'KG' ? 'selected' : ''}>KG</option>
+                                        <option value="JOB" ${row && row.unit === 'JOB' ? 'selected' : ''}>JOB</option>
                                     </select>
                                 </td>
                                 <td class="text-center">
                                     <input type="number" class="qty-input w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-center" 
-                                           value="${row ? (row.qty || '') : ''}" 
-                                           step="0.01" 
+                                           value="${row ? (parseFloat(row.qty) || '') : ''}" 
+                                           step="1" 
                                            placeholder="0" 
                                            data-row-index="${i}">
                                 </td>
                                 <td class="text-center">
                                     <input type="number" class="rate-input w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-center" 
-                                           value="${row ? (row.rate || '') : ''}" 
-                                           step="0.01" 
+                                           value="${row ? (parseFloat(row.rate) || '') : ''}" 
+                                           step="1" 
                                            placeholder="0" 
                                            data-row-index="${i}">
                                 </td>
                                 <td class="text-center">
                                     <input type="number" class="amount-input w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-center" 
-                                           value="${row ? (row.amount || '0') : '0'}" 
-                                           step="0.01" 
+                                           value="${row ? (parseFloat(row.amount) || '0') : '0'}" 
+                                           step="1" 
                                            placeholder="0" 
                                            readonly>
                                 </td>
@@ -1113,26 +1116,27 @@
                                         <option value="SQM">SQM</option>
                                         <option value="RM">RM</option>
                                         <option value="KG">KG</option>
+                                        <option value="JOB">JOB</option>
                                     </select>
                                 </td>
                                 <td class="text-center">
                                     <input type="number" class="qty-input w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-center" 
                                            value="" 
-                                           step="0.01" 
+                                           step="1" 
                                            placeholder="0" 
                                            data-row-index="${i}">
                                 </td>
                                 <td class="text-center">
                                     <input type="number" class="rate-input w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-center" 
                                            value="" 
-                                           step="0.01" 
+                                           step="1" 
                                            placeholder="0" 
                                            data-row-index="${i}">
                                 </td>
                                 <td class="text-center">
                                     <input type="number" class="amount-input w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-center" 
                                            value="0" 
-                                           step="0.01" 
+                                           step="1" 
                                            placeholder="0" 
                                            readonly>
                                 </td>
@@ -1229,12 +1233,12 @@
         }
 
         function calculateAmount($row) {
-            const qty = parseFloat($row.find('.qty-input').val()) || 1;
-            const rate = parseFloat($row.find('.rate-input').val()) || 1;
+            const qty = parseInt($row.find('.qty-input').val()) || 0;
+            const rate = parseInt($row.find('.rate-input').val()) || 0;
             const amount = qty * rate;
             
             // Update amount field with calculated value (always recalculate, don't trust stored value)
-            $row.find('.amount-input').val(amount.toFixed(2));
+            $row.find('.amount-input').val(Math.round(amount));
         }
         
         // Recalculate all amounts on page load for existing data
@@ -1273,26 +1277,27 @@
                             <option value="SQM">SQM</option>
                             <option value="RM">RM</option>
                             <option value="KG">KG</option>
+                            <option value="JOB">JOB</option>
                         </select>
                     </td>
                     <td class="text-center">
                         <input type="number" class="qty-input w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-center" 
                                value="" 
-                               step="0.01" 
+                               step="1" 
                                placeholder="0" 
                                data-row-index="${newRowIndex}">
                     </td>
                     <td class="text-center">
                         <input type="number" class="rate-input w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-center" 
                                value="" 
-                               step="0.01" 
+                               step="1" 
                                placeholder="0" 
                                data-row-index="${newRowIndex}">
                     </td>
                     <td class="text-center">
                         <input type="number" class="amount-input w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-center" 
                                value="0" 
-                               step="0.01" 
+                               step="1" 
                                placeholder="0" 
                                readonly>
                     </td>
