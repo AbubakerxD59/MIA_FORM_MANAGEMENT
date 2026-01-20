@@ -146,7 +146,9 @@ class InvoiceService
     {
         return InvoiceItem::create([
             'name' => $data['name'],
+            'type' => $data['type'],
             'invoice_id' => $data['invoice_id'],
+            'notes' => $data['notes'] ?? [],
         ]);
     }
 
@@ -157,7 +159,9 @@ class InvoiceService
     {
         $item->update([
             'name' => $data['name'],
+            'type' => $data['type'],
             'invoice_id' => $data['invoice_id'],
+            'notes' => $data['notes'] ?? [],
         ]);
         return $item;
     }
@@ -327,15 +331,15 @@ class InvoiceService
         $sheet->setCellValue('A' . $row, '');
         $sheet->getRowDimension($row)->setRowHeight(10);
         $row++;
-
-        // Header Design - MIA CONSTRUCTION and INVOICE
-        // Merge cells for "MIA CONSTRUCTION" (B:H with A empty)
+        // Header Section
+        $header = !empty($itemData['item']->type) ? $itemData['item']->type : 'Invoice';
+        // Merge cells for "INVOICE" (B:H with A empty)
         $sheet->mergeCells('B' . $row . ':H' . $row);
-        $sheet->setCellValue('B' . $row, 'MIA CONSTRUCTION');
-        $sheet->getRowDimension($row)->setRowHeight(25);
+        $sheet->setCellValue('B' . $row, strtoupper($header));
+        $sheet->getRowDimension($row)->setRowHeight(30);
 
-        $headerDesignStyleTop = [
-            'font' => ['bold' => true, 'size' => 12, 'color' => ['rgb' => '000000']],
+        $headerDesignStyleBottom = [
+            'font' => ['bold' => true, 'size' => 20, 'color' => ['rgb' => '000000']],
             'alignment' => [
                 'horizontal' => Alignment::HORIZONTAL_CENTER,
                 'vertical' => Alignment::VERTICAL_CENTER
@@ -345,31 +349,6 @@ class InvoiceService
                     'borderStyle' => Border::BORDER_MEDIUM,
                     'color' => ['rgb' => '000000']
                 ],
-                'left' => [
-                    'borderStyle' => Border::BORDER_MEDIUM,
-                    'color' => ['rgb' => '000000']
-                ],
-                'right' => [
-                    'borderStyle' => Border::BORDER_MEDIUM,
-                    'color' => ['rgb' => '000000']
-                ]
-            ]
-        ];
-        $sheet->getStyle('B' . $row . ':H' . $row)->applyFromArray($headerDesignStyleTop);
-        $row++;
-
-        // Merge cells for "INVOICE" (B:H with A empty)
-        $sheet->mergeCells('B' . $row . ':H' . $row);
-        $sheet->setCellValue('B' . $row, 'INVOICE');
-        $sheet->getRowDimension($row)->setRowHeight(25);
-
-        $headerDesignStyleBottom = [
-            'font' => ['bold' => true, 'size' => 12, 'color' => ['rgb' => '000000']],
-            'alignment' => [
-                'horizontal' => Alignment::HORIZONTAL_CENTER,
-                'vertical' => Alignment::VERTICAL_CENTER
-            ],
-            'borders' => [
                 'left' => [
                     'borderStyle' => Border::BORDER_MEDIUM,
                     'color' => ['rgb' => '000000']
@@ -401,35 +380,40 @@ class InvoiceService
         $row++;
 
         // Add two blank rows above CLIENT
-        for ($i = 0; $i < 2; $i++) {
+        for ($i = 0; $i < 1; $i++) {
             $sheet->setCellValue('A' . $row, '');
             $sheet->getRowDimension($row)->setRowHeight(25);
             $row++;
         }
 
         // Header Section
-        // CLIENT on left, DATE on right (A empty, shifted right)
+        // CLIENT on left, REF on right (A empty, shifted right)
         $clientRow = $row;
         $sheet->setCellValue('B' . $row, 'CLIENT:');
         $sheet->setCellValue('C' . $row, $invoice->client_name);
-        $sheet->setCellValue('G' . $row, 'DATE:');
-        $sheet->setCellValue('H' . $row, date('d/m/Y'));
+        $sheet->setCellValue('G' . $row, 'REF:');
+        $sheet->setCellValue('H' . $row, '');
+        $sheet->getRowDimension($row)->setRowHeight(25);
         $row++;
 
         // PROJECT
         $projectRow = $row;
         $sheet->setCellValue('B' . $row, 'PROJECT:');
         $sheet->setCellValue('C' . $row, $invoice->project_name);
+        $sheet->getRowDimension($row)->setRowHeight(25);
         $row++;
 
         // ITEM
         $itemRow = $row;
         $sheet->setCellValue('B' . $row, 'ITEM:');
         $sheet->setCellValue('C' . $row, $itemData['item']->name);
+        $sheet->setCellValue('G' . $row, 'DATE:');
+        $sheet->setCellValue('H' . $row, date('d/m/Y'));
+        $sheet->getRowDimension($row)->setRowHeight(25);
         $row++;
 
         // Add two blank rows below ITEM
-        for ($i = 0; $i < 2; $i++) {
+        for ($i = 0; $i < 1; $i++) {
             $sheet->setCellValue('A' . $row, '');
             $sheet->getRowDimension($row)->setRowHeight(25);
             $row++;
@@ -495,7 +479,7 @@ class InvoiceService
         ];
         $sheet->getStyle('B' . $tableHeaderRow . ':H' . $tableHeaderRow)->applyFromArray($tableHeaderStyle);
         $sheet->getStyle('C' . $tableHeaderRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
-        $sheet->getRowDimension($tableHeaderRow)->setRowHeight(25);
+        $sheet->getRowDimension($tableHeaderRow)->setRowHeight(30);
 
         // Table Data (A empty, shifted right)
         $dataRow = $tableHeaderRow + 1;
@@ -516,10 +500,18 @@ class InvoiceService
             $dataStyle = [
                 'font' => ['size' => 11, 'color' => ['rgb' => '000000']],
                 'borders' => [
-                    'allBorders' => [
+                    'vertical' => [
                         'borderStyle' => Border::BORDER_THIN,
                         'color' => ['rgb' => '000000']
-                    ]
+                    ],
+                    'left' => [
+                        'borderStyle' => Border::BORDER_THIN,
+                        'color' => ['rgb' => '000000']
+                    ],
+                    'right' => [
+                        'borderStyle' => Border::BORDER_THIN,
+                        'color' => ['rgb' => '000000']
+                    ],
                 ],
                 'alignment' => [
                     'horizontal' => Alignment::HORIZONTAL_CENTER,
@@ -534,29 +526,40 @@ class InvoiceService
             $sheet->getStyle('E' . $dataRow)->getNumberFormat()->setFormatCode('0');
             $sheet->getStyle('F' . $dataRow)->getNumberFormat()->setFormatCode('#,##0');
             $sheet->getStyle('G' . $dataRow)->getNumberFormat()->setFormatCode('#,##0');
+            $sheet->getRowDimension($dataRow)->setRowHeight(25);
 
             $dataRow++;
         }
 
         // Add 3-4 blank rows after last item details (A empty, shifted right)
-        $blankRowsCount = 4;
-        for ($i = 0; $i < $blankRowsCount; $i++) {
-            // Style blank rows with borders to match table style
-            $blankRowStyle = [
-                'borders' => [
-                    'allBorders' => [
-                        'borderStyle' => Border::BORDER_THIN,
-                        'color' => ['rgb' => '000000']
+        $blankRowsCount = 10 - count($itemData['summaries']) + 5;
+        if ($blankRowsCount > 0) {
+            for ($i = 0; $i < $blankRowsCount; $i++) {
+                // Style blank rows with borders to match table style
+                $blankRowStyle = [
+                    'borders' => [
+                        'vertical' => [
+                            'borderStyle' => Border::BORDER_THIN,
+                            'color' => ['rgb' => '000000']
+                        ],
+                        'left' => [
+                            'borderStyle' => Border::BORDER_THIN,
+                            'color' => ['rgb' => '000000']
+                        ],
+                        'right' => [
+                            'borderStyle' => Border::BORDER_THIN,
+                            'color' => ['rgb' => '000000']
+                        ],
+                    ],
+                    'alignment' => [
+                        'horizontal' => Alignment::HORIZONTAL_CENTER,
+                        'vertical' => Alignment::VERTICAL_CENTER
                     ]
-                ],
-                'alignment' => [
-                    'horizontal' => Alignment::HORIZONTAL_CENTER,
-                    'vertical' => Alignment::VERTICAL_CENTER
-                ]
-            ];
-            $sheet->getStyle('B' . $dataRow . ':H' . $dataRow)->applyFromArray($blankRowStyle);
-            $sheet->getRowDimension($dataRow)->setRowHeight(20);
-            $dataRow++;
+                ];
+                $sheet->getStyle('B' . $dataRow . ':H' . $dataRow)->applyFromArray($blankRowStyle);
+                $sheet->getRowDimension($dataRow)->setRowHeight(25);
+                $dataRow++;
+            }
         }
 
         // Add TOTAL AMOUNT row (A empty, shifted right)
@@ -582,8 +585,29 @@ class InvoiceService
         $sheet->getStyle('B' . $totalRow . ':H' . $totalRow)->applyFromArray($totalRowStyle);
         $sheet->getStyle('C' . $totalRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
         $sheet->getStyle('G' . $totalRow)->getNumberFormat()->setFormatCode('#,##0');
-        $sheet->getRowDimension($totalRow)->setRowHeight(25);
+        $sheet->getRowDimension($totalRow)->setRowHeight(30);
         $dataRow++;
+
+        // Add Notes Section
+        $notes = $itemData['item']->notes;
+        if (!empty($notes) && is_array($notes)) {
+            // Leave 2 blank rows
+            $dataRow += 2;
+
+            // Label "Notes:" in Cell C
+            $sheet->setCellValue('C' . $dataRow, 'Notes:');
+            $sheet->getStyle('C' . $dataRow)->getFont()->setBold(true);
+            $sheet->getStyle('C' . $dataRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+
+            // Notes in Cell D as ordered list
+            foreach ($notes as $index => $note) {
+                $sheet->setCellValue('D' . $dataRow, ($index + 1) . '. ' . $note);
+                // Merge D to H for better display
+                $sheet->mergeCells('D' . $dataRow . ':H' . $dataRow);
+                $sheet->getStyle('D' . $dataRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+                $dataRow++;
+            }
+        }
 
         // Set column widths (A empty, shifted right)
         $sheet->getColumnDimension('A')->setWidth(2); // Empty column - very narrow

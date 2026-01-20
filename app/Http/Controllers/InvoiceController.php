@@ -131,7 +131,10 @@ class InvoiceController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'type' => 'required|string|max:255',
             'invoice_id' => 'required|exists:invoices,id',
+            'notes' => 'nullable|array',
+            'notes.*' => 'nullable|string',
         ]);
 
         try {
@@ -143,6 +146,7 @@ class InvoiceController extends Controller
                 'item' => [
                     'id' => $invoiceItem->id,
                     'name' => $invoiceItem->name,
+                    'type' => $invoiceItem->type,
                     'created_at' => $invoiceItem->created_at->toISOString(),
                 ]
             ], 201);
@@ -194,7 +198,10 @@ class InvoiceController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'type' => 'required|string|max:255',
             'invoice_id' => 'required|exists:invoices,id',
+            'notes' => 'nullable|array',
+            'notes.*' => 'nullable|string',
         ]);
 
         try {

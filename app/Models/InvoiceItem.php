@@ -23,6 +23,12 @@ class InvoiceItem extends Model
         'user_id',
         'invoice_id',
         'name',
+        'type',
+        'notes'
+    ];
+
+    protected $casts = [
+        'notes' => 'array',
     ];
 
     /**

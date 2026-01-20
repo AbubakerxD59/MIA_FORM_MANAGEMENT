@@ -278,7 +278,7 @@
                                             </p>
                                             <div class="flex gap-1">
                                                 <button type="button" class="p-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
-                                                    onclick="event.stopPropagation(); editInvoiceItem({{ $item->id }}, '{{ addslashes($item->name) }}')"
+                                                    onclick="event.stopPropagation(); editInvoiceItem({{ $item->id }}, '{{ addslashes($item->name) }}', '{{ $item->type }}', {{ json_encode($item->notes ?? []) }})"
                                                     title="Edit item">
                                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
@@ -344,6 +344,33 @@
                                     </label>
                                     <input type="text" id="newItemName" placeholder="Enter item name"
                                         class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        Type <span class="text-red-500">*</span>
+                                    </label>
+                                    <select id="invoiceType"
+                                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white">
+                                        <option value="">Select Type</option>
+                                        <option value="invoice">Invoice</option>
+                                        <option value="bill">Bill</option>
+                                        <option value="quotation">Quotation</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        Notes
+                                    </label>
+                                    <div id="notesContainer" class="space-y-3">
+                                        <!-- Dynamic Note Inputs will go here -->
+                                    </div>
+                                    <button type="button" id="addNoteBtn"
+                                        class="mt-3 inline-flex items-center px-4 py-2 border border-blue-600 dark:border-blue-400 text-sm font-medium rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+                                        <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                        </svg>
+                                        Add Note
+                                    </button>
                                 </div>
                                 <div class="flex gap-3">
                                     <button type="button" id="saveItemBtn"
@@ -569,22 +596,32 @@
             // Handle Save Item button click
             $('#saveItemBtn').on('click', function() {
                 const itemName = $('#newItemName').val().trim();
+                const invoiceType = $('#invoiceType').val();
                 if (!itemName) {
                     alert('Please enter an item name');
                     return;
                 }
-                createInvoiceItem(itemName);
+                if(!invoiceType) {
+                    alert('Please select an invoice type');
+                    return;
+                }
+                createInvoiceItem(itemName, invoiceType);
             });
 
             // Handle Update Item button click
             $('#updateItemBtn').on('click', function() {
                 const itemId = $('#editItemId').val();
                 const itemName = $('#newItemName').val().trim();
+                const invoiceType = $('#invoiceType').val();
                 if (!itemName) {
                     alert('Please enter an item name');
                     return;
                 }
-                updateInvoiceItem(itemId, itemName);
+                if(!invoiceType) {
+                    alert('Please select an invoice type');
+                    return;
+                }
+                updateInvoiceItem(itemId, itemName, invoiceType);
             });
 
             // Handle Add Rate button click
@@ -637,9 +674,45 @@
             $('#addRowBtn').on('click', function() {
                 addNewRow();
             });
+
+            // Handle Add Note button click
+            $('#addNoteBtn').on('click', function() {
+                addNoteInput();
+            });
+
+            // Handle Delete Note button click (using delegation)
+            $('#notesContainer').on('click', '.delete-note-btn', function() {
+                $(this).closest('.note-entry').remove();
+            });
         });
 
-        function createInvoiceItem(itemName) {
+        function addNoteInput(value = '') {
+            const noteInput = `
+                <div class="flex gap-2 items-center note-entry animate-fade-in">
+                    <input type="text" name="notes[]" value="${value.replace(/"/g, '&quot;')}" placeholder="Enter note"
+                        class="notes_field flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
+                    <button type="button" class="p-2 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors delete-note-btn" title="Delete note">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                    </button>
+                </div>
+            `;
+            $('#notesContainer').append(noteInput);
+        }
+
+        function getNotes() {
+            const notes = [];
+            $('.notes_field').each(function() {
+                const val = $(this).val().trim();
+                if (val) {
+                    notes.push(val);
+                }
+            });
+            return notes;
+        }
+
+        function createInvoiceItem(itemName, invoiceType) {
             const saveBtn = $('#saveItemBtn');
             const originalText = saveBtn.text();
             saveBtn.prop('disabled', true).text('Saving...');
@@ -649,7 +722,9 @@
                 method: 'POST',
                 data: {
                     name: itemName,
-                    invoice_id: {{ $invoice->id }}
+                    type: invoiceType,
+                    invoice_id: {{ $invoice->id }},
+                    notes: getNotes()
                 },
                 success: function(response) {
                     if (response.success) {
@@ -657,6 +732,8 @@
                         $('#createSection').addClass('hidden');
                         $('#createItemForm').addClass('hidden');
                         $('#newItemName').val('');
+                        $('#invoiceType').val('');
+                        $('#notesContainer').empty();
                         location.reload();
                     } else {
                         alert('Error: ' + (response.error || 'Unknown error'));
@@ -729,6 +806,8 @@
         function resetItemForm() {
             $('#editItemId').val('');
             $('#newItemName').val('');
+            $('#invoiceType').val('');
+            $('#notesContainer').empty();
             $('#itemFormTitle').text('Add New Item');
             $('#saveItemBtn').removeClass('hidden');
             $('#updateItemBtn').addClass('hidden');
@@ -744,10 +823,30 @@
             $('#updateRateBtn').addClass('hidden');
         }
 
-        function editInvoiceItem(itemId, itemName) {
+        function editInvoiceItem(itemId, itemName, type, notes = []) {
             resetItemForm();
             $('#editItemId').val(itemId);
             $('#newItemName').val(itemName);
+            $('#invoiceType').val(type);
+
+            // Populate notes
+            if (Array.isArray(notes)) {
+                notes.forEach(note => {
+                   addNoteInput(note);
+                });
+            } else if (typeof notes === 'string') {
+                // Handle potential JSON string or single string
+                try {
+                    const parsed = JSON.parse(notes);
+                    if (Array.isArray(parsed)) {
+                        parsed.forEach(note => addNoteInput(note));
+                    } else {
+                        addNoteInput(notes);
+                    }
+                } catch(e) {
+                    addNoteInput(notes);
+                }
+            }
             $('#itemFormTitle').text('Edit Item');
             $('#saveItemBtn').addClass('hidden');
             $('#updateItemBtn').removeClass('hidden');
@@ -772,7 +871,7 @@
             $('#newRateName').focus();
         }
 
-        function updateInvoiceItem(itemId, itemName) {
+        function updateInvoiceItem(itemId, itemName, invoiceType) {
             const updateBtn = $('#updateItemBtn');
             const originalText = updateBtn.text();
             updateBtn.prop('disabled', true).text('Updating...');
@@ -782,7 +881,9 @@
                 method: 'PUT',
                 data: {
                     name: itemName,
-                    invoice_id: {{ $invoice->id }}
+                    type: invoiceType,
+                    invoice_id: {{ $invoice->id }},
+                    notes: getNotes()
                 },
                 headers: {
                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
