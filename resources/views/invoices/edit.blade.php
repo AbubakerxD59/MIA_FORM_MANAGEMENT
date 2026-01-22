@@ -415,6 +415,8 @@
                                         <option value="RM">RM</option>
                                         <option value="KG">KG</option>
                                         <option value="JOB">JOB</option>
+                                        <option value="NOS">NOS</option>
+                                        <option value="BAG">BAG</option>
                                     </select>
                                 </div>
                                 <div>
@@ -1087,6 +1089,8 @@
                                 <option value="RM">RM</option>
                                 <option value="KG">KG</option>
                                 <option value="JOB">JOB</option>
+                                <option value="NOS">NOS</option>
+                                <option value="BAG">BAG</option>
                             </select>
                         </td>
                         <td class="text-center">
@@ -1157,6 +1161,8 @@
                                         <option value="RM" ${row && row.unit === 'RM' ? 'selected' : ''}>RM</option>
                                         <option value="KG" ${row && row.unit === 'KG' ? 'selected' : ''}>KG</option>
                                         <option value="JOB" ${row && row.unit === 'JOB' ? 'selected' : ''}>JOB</option>
+                                        <option value="NOS" ${row && row.unit === 'NOS' ? 'selected' : ''}>NOS</option>
+                                        <option value="BAG" ${row && row.unit === 'BAG' ? 'selected' : ''}>BAG</option>
                                     </select>
                                 </td>
                                 <td class="text-center">
@@ -1218,6 +1224,8 @@
                                         <option value="RM">RM</option>
                                         <option value="KG">KG</option>
                                         <option value="JOB">JOB</option>
+                                        <option value="NOS">NOS</option>
+                                        <option value="BAG">BAG</option>
                                     </select>
                                 </td>
                                 <td class="text-center">
@@ -1379,6 +1387,8 @@
                             <option value="RM">RM</option>
                             <option value="KG">KG</option>
                             <option value="JOB">JOB</option>
+                            <option value="NOS">NOS</option>
+                            <option value="BAG">BAG</option>
                         </select>
                     </td>
                     <td class="text-center">
