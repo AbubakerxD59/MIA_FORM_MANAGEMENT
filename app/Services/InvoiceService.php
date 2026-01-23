@@ -13,6 +13,7 @@ use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Worksheet\PageSetup;
+use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 
 class InvoiceService
 {
@@ -595,19 +596,42 @@ class InvoiceService
             $dataRow += 2;
 
             // Label "Notes:" in Cell C
-            $sheet->setCellValue('C' . $dataRow, 'Notes:');
-            $sheet->getStyle('C' . $dataRow)->getFont()->setBold(true);
-            $sheet->getStyle('C' . $dataRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+            $sheet->setCellValue('B' . $dataRow, 'Notes:');
+            $sheet->getStyle('B' . $dataRow)->getFont()->setBold(true);
+            $sheet->getStyle('B' . $dataRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
 
             // Notes in Cell D as ordered list
             foreach ($notes as $index => $note) {
-                $sheet->setCellValue('D' . $dataRow, ($index + 1) . '. ' . $note);
-                // Merge D to H for better display
-                $sheet->mergeCells('D' . $dataRow . ':H' . $dataRow);
-                $sheet->getStyle('D' . $dataRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+                $sheet->setCellValue('C' . $dataRow, ($index + 1) . '. ' . $note);
+                $sheet->mergeCells('C' . $dataRow . ':F' . $dataRow);
+                $sheet->getStyle('C' . $dataRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
                 $dataRow++;
             }
         }
+
+        // Add Signature Section
+        // Add Monogram Image
+        if (file_exists(public_path('images/monogram.jpeg'))) {
+            $drawing = new Drawing();
+            $drawing->setName('Monogram');
+            $drawing->setDescription('Monogram');
+            $drawing->setPath(public_path('images/monogram.jpeg'));
+            $drawing->setHeight(80);
+            $drawing->setCoordinates('G' . $dataRow);
+            $drawing->setWorksheet($sheet);
+            $sheet->getRowDimension($dataRow)->setRowHeight(80);
+        }
+        $dataRow++;
+
+        $sheet->setCellValue('G' . $dataRow, 'MIA CONSTRUCTION');
+        $sheet->getStyle('G' . $dataRow)->getFont()->setBold(true);
+        $sheet->getStyle('G' . $dataRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+
+        $dataRow++;
+        $sheet->setCellValue('G' . $dataRow, 'MUHAMMAD IMRAN');
+        $sheet->getStyle('G' . $dataRow)->getFont()->setBold(true);
+        $sheet->getStyle('G' . $dataRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+        $dataRow++;
 
         // Set column widths (A empty, shifted right)
         $sheet->getColumnDimension('A')->setWidth(2); // Empty column - very narrow
