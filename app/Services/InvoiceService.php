@@ -14,6 +14,7 @@ use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Worksheet\PageSetup;
 use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
+use PhpOffice\PhpSpreadsheet\Worksheet\HeaderFooterDrawing;
 
 class InvoiceService
 {
@@ -603,25 +604,28 @@ class InvoiceService
             // Notes in Cell D as ordered list
             foreach ($notes as $index => $note) {
                 $sheet->setCellValue('C' . $dataRow, ($index + 1) . '. ' . $note);
-                $sheet->mergeCells('C' . $dataRow . ':F' . $dataRow);
+                $sheet->mergeCells('C' . $dataRow . ':H' . $dataRow);
                 $sheet->getStyle('C' . $dataRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
                 $dataRow++;
             }
         }
 
-        // Add Signature Section
+        for ($i = 1; $i <= 2; $i++) {
+            $sheet->getRowDimension($dataRow)->setRowHeight(25);
+            $dataRow++;
+        }
+        
         // Add Monogram Image
         if (file_exists(public_path('images/monogram.jpeg'))) {
             $drawing = new Drawing();
             $drawing->setName('Monogram');
             $drawing->setDescription('Monogram');
             $drawing->setPath(public_path('images/monogram.jpeg'));
-            $drawing->setHeight(80);
-            $drawing->setCoordinates('G' . $dataRow);
+            $drawing->setHeight(60);
+            $drawing->setOffsetX(20);
+            $drawing->setCoordinates('F' . $dataRow);
             $drawing->setWorksheet($sheet);
-            $sheet->getRowDimension($dataRow)->setRowHeight(80);
         }
-        $dataRow++;
 
         $sheet->setCellValue('G' . $dataRow, 'MIA CONSTRUCTION');
         $sheet->getStyle('G' . $dataRow)->getFont()->setBold(true);
@@ -631,6 +635,7 @@ class InvoiceService
         $sheet->setCellValue('G' . $dataRow, 'MUHAMMAD IMRAN');
         $sheet->getStyle('G' . $dataRow)->getFont()->setBold(true);
         $sheet->getStyle('G' . $dataRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+        $sheet->getRowDimension($dataRow)->setRowHeight(30);
         $dataRow++;
 
         // Set column widths (A empty, shifted right)
@@ -660,10 +665,29 @@ class InvoiceService
         $sheet->getPageMargins()->setLeft(0.5);
 
         // Set page footer
-        $footerText = "&C&12&B MIA CONSTRUCTION\n";
+        $footerText = "&C&12____________________________________________________________________________________________________\n";
+        $footerText .= "&B MIA CONSTRUCTION\n";
         $footerText .= "\n&C&10 Consultant - Designer - Estimator - Contractor\n";
         $footerText .= "&C&10 - 03218600259 -";
         $sheet->getHeaderFooter()->setOddFooter($footerText);
         $sheet->getHeaderFooter()->setEvenFooter($footerText);
+
+        // Add Background Watermark (Centered behind table)
+        if (file_exists(public_path('images/bg_monogram.jpeg'))) {
+            $drawing = new Drawing();
+            $drawing->setName('Watermark');
+            $drawing->setDescription('Watermark');
+            $drawing->setPath(public_path('images/bg_monogram.jpeg'));
+            $drawing->setWidth(500);
+            $drawing->setOpacity(35000); // 25% Opacity
+
+            // Position in the middle of the table
+            // $tableHeaderRow is defined earlier in this scope
+            $watermarkRow = isset($tableHeaderRow) ? $tableHeaderRow + 2 : 15;
+            $drawing->setCoordinates('C' . $watermarkRow);
+            $drawing->setOffsetX(100); // Fine tune horizontal position
+
+            $drawing->setWorksheet($sheet);
+        }
     }
 }
