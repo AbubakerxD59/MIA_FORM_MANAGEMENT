@@ -8,6 +8,10 @@ use App\Models\BarBendingFormItem;
 use App\Models\BarBendingLocation;
 use App\Models\BarBendingFormLocation;
 use App\Models\Formula;
+use App\Models\CdHead;
+use App\Models\CdItem;
+use App\Models\CdLedger;
+use App\Models\CdSummary;
 use App\Services\FormService;
 use App\Services\BBSService;
 use App\Services\FormulaService;
@@ -489,6 +493,365 @@ class FormController extends Controller
     }
 
     /**
+     * Show the Credit/Debit view for the specified form.
+     */
+    public function cd(Form $form): View
+    {
+        $cdHeads = CdHead::where('form_id', $form->id)
+            ->with('cdItems')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $cdLedger = CdLedger::where('form_id', $form->id)->first();
+        $totalIncome = $cdLedger ? $cdLedger->income : 0;
+
+        // Load existing summaries with head relationship
+        $cdSummaries = CdSummary::where('form_id', $form->id)
+            ->with('cdHead')
+            ->orderBy('created_at', 'asc')
+            ->get();
+
+        // Group summaries by created_at (within 2 seconds) and head_id to combine debit/credit pairs
+        $groupedSummaries = [];
+        $processedIds = [];
+
+        foreach ($cdSummaries as $summary) {
+            // Skip if already processed
+            if (in_array($summary->id, $processedIds)) {
+                continue;
+            }
+
+            $group = [
+                'head_id' => $summary->head_id,
+                'head_name' => $summary->cdHead->name ?? '',
+                'debit' => 0,
+                'credit' => 0,
+                'description' => $summary->description ?? '',
+                'created_at' => $summary->created_at,
+            ];
+
+            // Set the current summary's value
+            if ($summary->cd_type === 'debit') {
+                $group['debit'] = $summary->amount;
+            } else {
+                $group['credit'] = $summary->amount;
+            }
+
+            $processedIds[] = $summary->id;
+
+            // Look for matching entries (same head, within 2 seconds, opposite type)
+            foreach ($cdSummaries as $otherSummary) {
+                if (in_array($otherSummary->id, $processedIds)) {
+                    continue;
+                }
+
+                $timeDiff = abs($summary->created_at->diffInSeconds($otherSummary->created_at));
+                if (
+                    $otherSummary->head_id === $summary->head_id &&
+                    $timeDiff <= 2 &&
+                    $otherSummary->cd_type !== $summary->cd_type
+                ) {
+                    // Found matching entry
+                    if ($otherSummary->cd_type === 'debit') {
+                        $group['debit'] = $otherSummary->amount;
+                    } else {
+                        $group['credit'] = $otherSummary->amount;
+                    }
+                    // Use description from either entry (prefer non-empty one)
+                    if (empty($group['description']) && !empty($otherSummary->description)) {
+                        $group['description'] = $otherSummary->description;
+                    }
+                    $processedIds[] = $otherSummary->id;
+                    break; // Only combine one pair
+                }
+            }
+
+            // Add group if it has at least one value
+            if ($group['debit'] > 0 || $group['credit'] > 0) {
+                $groupedSummaries[] = $group;
+            }
+        }
+
+        return view('forms.cd', compact('form', 'cdHeads', 'totalIncome', 'groupedSummaries'));
+    }
+
+    /**
+     * Store a new CD head.
+     */
+    public function storeCdHead(Request $request, Form $form): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+        ]);
+
+        try {
+            $cdHead = CdHead::create([
+                'user_id' => Auth::id(),
+                'form_id' => $form->id,
+                'name' => $validated['name'],
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Head created successfully.',
+                'head' => [
+                    'id' => $cdHead->id,
+                    'name' => $cdHead->name,
+                    'created_at' => $cdHead->created_at->toISOString(),
+                ],
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create head: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get a CD head.
+     */
+    public function getCdHead(CdHead $head): JsonResponse
+    {
+        try {
+            return response()->json([
+                'success' => true,
+                'head' => [
+                    'id' => $head->id,
+                    'name' => $head->name,
+                    'created_at' => $head->created_at->toISOString(),
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to get head: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Update a CD head.
+     */
+    public function updateCdHead(Request $request, CdHead $head): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+        ]);
+
+        try {
+            $head->update([
+                'name' => $validated['name'],
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Head updated successfully.',
+                'head' => [
+                    'id' => $head->id,
+                    'name' => $head->name,
+                    'updated_at' => $head->updated_at->toISOString(),
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update head: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Store CD items for a head.
+     */
+    public function storeCdItems(Request $request, CdHead $head): JsonResponse
+    {
+        $validated = $request->validate([
+            'items' => 'required|array|min:1',
+            'items.*' => 'required|string|max:255',
+        ]);
+
+        try {
+            $createdItems = [];
+            foreach ($validated['items'] as $itemName) {
+                $item = CdItem::create([
+                    'user_id' => Auth::id(),
+                    'form_id' => $head->form_id,
+                    'head_id' => $head->id,
+                    'name' => $itemName,
+                ]);
+                $createdItems[] = [
+                    'id' => $item->id,
+                    'name' => $item->name,
+                ];
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Items created successfully.',
+                'items' => $createdItems,
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create items: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Update or create CD ledger for a form.
+     */
+    public function updateCdLedger(Request $request, Form $form): JsonResponse
+    {
+        $validated = $request->validate([
+            'income' => 'required|numeric|min:0',
+        ]);
+
+        try {
+            $cdLedger = CdLedger::updateOrCreate(
+                [
+                    'user_id' => Auth::id(),
+                    'form_id' => $form->id,
+                ],
+                [
+                    'income' => $validated['income'],
+                ]
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Total income updated successfully.',
+                'ledger' => [
+                    'id' => $cdLedger->id,
+                    'income' => $cdLedger->income,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update income: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get CD heads for autocomplete.
+     */
+    public function getCdHeadsForAutocomplete(Request $request, Form $form): JsonResponse
+    {
+        try {
+            $query = $request->get('term', '');
+
+            $cdHeads = CdHead::where('form_id', $form->id)
+                ->where('name', 'like', '%' . $query . '%')
+                ->orderBy('name', 'asc')
+                ->pluck('name')
+                ->toArray();
+
+            return response()->json($cdHeads);
+        } catch (\Exception $e) {
+            return response()->json([], 500);
+        }
+    }
+
+    /**
+     * Store CD summary entries.
+     */
+    public function storeCdSummary(Request $request, Form $form): JsonResponse
+    {
+        $validated = $request->validate([
+            'summaries' => 'required|array',
+            'summaries.*.head_name' => 'required|string',
+            'summaries.*.cd_type' => 'required|in:credit,debit',
+            'summaries.*.amount' => 'required|numeric|min:0',
+            'summaries.*.description' => 'nullable|string',
+        ]);
+
+        try {
+            // Delete all existing summaries for this form
+            CdSummary::where('form_id', $form->id)->delete();
+
+            $created = [];
+
+            foreach ($validated['summaries'] as $summary) {
+                // Find or create head by name
+                $head = CdHead::where('form_id', $form->id)
+                    ->where('name', $summary['head_name'])
+                    ->first();
+
+                if (!$head) {
+                    // Create new head if it doesn't exist
+                    $head = CdHead::create([
+                        'user_id' => Auth::id(),
+                        'form_id' => $form->id,
+                        'name' => $summary['head_name'],
+                    ]);
+                }
+
+                // Create summary entry
+                $cdSummary = CdSummary::create([
+                    'user_id' => Auth::id(),
+                    'form_id' => $form->id,
+                    'head_id' => $head->id,
+                    'cd_type' => $summary['cd_type'],
+                    'amount' => $summary['amount'],
+                    'description' => $summary['description'] ?? null,
+                ]);
+
+                $created[] = [
+                    'id' => $cdSummary->id,
+                    'head_name' => $summary['head_name'],
+                    'cd_type' => $cdSummary->cd_type,
+                    'amount' => $cdSummary->amount,
+                ];
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Credit/Debit summary saved successfully.',
+                'summaries' => $created,
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to save summary: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get CD heads for sidebar.
+     */
+    public function getCdHeads(Form $form): JsonResponse
+    {
+        try {
+            $cdHeads = CdHead::where('form_id', $form->id)
+                ->with('cdItems')
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            $headsData = $cdHeads->map(function ($head) {
+                return [
+                    'id' => $head->id,
+                    'name' => $head->name,
+                    'created_at' => $head->created_at->format('M d, Y'),
+                    'items' => $head->cdItems->map(function ($item) {
+                        return [
+                            'id' => $item->id,
+                            'name' => $item->name,
+                        ];
+                    }),
+                ];
+            });
+
+            return response()->json($headsData);
+        } catch (\Exception $e) {
+            return response()->json([], 500);
+        }
+    }
+
+    /**
      * Update the specified form in storage.
      */
     public function update(UpdateFormRequest $request, Form $form): JsonResponse|\Illuminate\Http\RedirectResponse
@@ -592,15 +955,15 @@ class FormController extends Controller
         try {
             // Get the form to extract client_name and project_name
             $form = Form::onlyTrashed()->findOrFail($id);
-            
+
             // Restore all forms with the same client_name and project_name
             $restoredCount = $this->formService->restoreFormsByProject(
                 $form->client_name,
                 $form->project_name
             );
 
-            $message = $restoredCount === 1 
-                ? 'Form restored successfully.' 
+            $message = $restoredCount === 1
+                ? 'Form restored successfully.'
                 : "All forms ({$restoredCount}) for client '{$form->client_name}' and project '{$form->project_name}' have been restored successfully.";
 
             if (request()->wantsJson()) {

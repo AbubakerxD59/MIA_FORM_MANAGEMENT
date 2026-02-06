@@ -61,6 +61,21 @@ Route::middleware('auth')->group(function () {
     // ============================================
     Route::get('forms/bbs/{form}', [FormController::class, 'bbs'])->name('forms.bbs');
 
+    // ============================================
+    // Credit/Debit Routes
+    // ============================================
+    Route::get('forms/cd/{form}', [FormController::class, 'cd'])->name('forms.cd');
+
+    // CD API Routes
+    Route::post('api/forms/{form}/cd-heads', [FormController::class, 'storeCdHead'])->name('api.store-cd-head');
+    Route::get('api/cd-heads/{head}', [FormController::class, 'getCdHead'])->name('api.get-cd-head');
+    Route::put('api/cd-heads/{head}', [FormController::class, 'updateCdHead'])->name('api.update-cd-head');
+    Route::post('api/cd-heads/{head}/items', [FormController::class, 'storeCdItems'])->name('api.store-cd-items');
+    Route::post('api/forms/{form}/cd-ledger', [FormController::class, 'updateCdLedger'])->name('api.update-cd-ledger');
+    Route::get('api/forms/{form}/cd-heads/autocomplete', [FormController::class, 'getCdHeadsForAutocomplete'])->name('api.cd-heads-autocomplete');
+    Route::post('api/forms/{form}/cd-summary', [FormController::class, 'storeCdSummary'])->name('api.store-cd-summary');
+    Route::get('api/forms/{form}/cd-heads', [FormController::class, 'getCdHeads'])->name('api.get-cd-heads');
+
     // BBS API Routes
     Route::get('api/forms/{form}/bar-bending-items', [FormController::class, 'getBarBendingFormItems'])->name('api.bar-bending-form-items');
     Route::get('api/bar-bending-form-items/{item}', [FormController::class, 'getBarBendingFormItem'])->name('api.get-bar-bending-form-item');
