@@ -19,7 +19,6 @@ return new class extends Migration
             $table->enum('cd_type', ['credit', 'debit']);
             $table->decimal('amount', 15, 2);
             $table->timestamps();
-            $table->softDeletes();
         });
     }
 

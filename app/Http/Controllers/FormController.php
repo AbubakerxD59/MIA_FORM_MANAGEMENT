@@ -22,6 +22,12 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 
 class FormController extends Controller
 {
@@ -503,7 +509,7 @@ class FormController extends Controller
             ->get();
 
         $cdLedger = CdLedger::where('form_id', $form->id)->first();
-        $totalIncome = $cdLedger ? $cdLedger->income : 0;
+        $baseIncome = $cdLedger ? $cdLedger->income : 0;
 
         // Load existing summaries with head relationship
         $cdSummaries = CdSummary::where('form_id', $form->id)
@@ -572,7 +578,431 @@ class FormController extends Controller
             }
         }
 
-        return view('forms.cd', compact('form', 'cdHeads', 'totalIncome', 'groupedSummaries'));
+        // Calculate total credit (sum of all credits) and add to base income for 
+        $totalIncome = $baseIncome;
+
+        return view('forms.cd', compact('form', 'cdHeads', 'totalIncome', 'groupedSummaries', 'baseIncome'));
+    }
+
+    /**
+     * Export CD summary to Excel.
+     */
+    public function exportCd(Form $form): StreamedResponse|\Illuminate\Http\RedirectResponse
+    {
+        try {
+            $cdLedger = CdLedger::where('form_id', $form->id)->first();
+            $totalIncome = $cdLedger ? $cdLedger->income : 0;
+
+            // Load existing summaries with head relationship
+            $cdSummaries = CdSummary::where('form_id', $form->id)
+                ->with('cdHead')
+                ->orderBy('created_at', 'asc')
+                ->get();
+
+            // Group summaries by created_at (within 2 seconds) and head_id to combine debit/credit pairs
+            $groupedSummaries = [];
+            $processedIds = [];
+
+            foreach ($cdSummaries as $summary) {
+                // Skip if already processed
+                if (in_array($summary->id, $processedIds)) {
+                    continue;
+                }
+
+                $group = [
+                    'head_id' => $summary->head_id,
+                    'head_name' => $summary->cdHead->name ?? '',
+                    'debit' => 0,
+                    'credit' => 0,
+                    'description' => $summary->description ?? '',
+                    'created_at' => $summary->created_at,
+                ];
+
+                // Set the current summary's value
+                if ($summary->cd_type === 'debit') {
+                    $group['debit'] = $summary->amount;
+                } else {
+                    $group['credit'] = $summary->amount;
+                }
+
+                $processedIds[] = $summary->id;
+
+                // Look for matching entries (same head, within 2 seconds, opposite type)
+                foreach ($cdSummaries as $otherSummary) {
+                    if (in_array($otherSummary->id, $processedIds)) {
+                        continue;
+                    }
+
+                    $timeDiff = abs($summary->created_at->diffInSeconds($otherSummary->created_at));
+                    if (
+                        $otherSummary->head_id === $summary->head_id &&
+                        $timeDiff <= 2 &&
+                        $otherSummary->cd_type !== $summary->cd_type
+                    ) {
+                        // Found matching entry
+                        if ($otherSummary->cd_type === 'debit') {
+                            $group['debit'] = $otherSummary->amount;
+                        } else {
+                            $group['credit'] = $otherSummary->amount;
+                        }
+                        // Use description from either entry (prefer non-empty one)
+                        if (empty($group['description']) && !empty($otherSummary->description)) {
+                            $group['description'] = $otherSummary->description;
+                        }
+                        $processedIds[] = $otherSummary->id;
+                        break; // Only combine one pair
+                    }
+                }
+
+                // Add group if it has at least one value
+                if ($group['debit'] > 0 || $group['credit'] > 0) {
+                    $groupedSummaries[] = $group;
+                }
+            }
+
+            // Calculate total expense (sum of all debits)
+            $totalExpense = array_sum(array_column($groupedSummaries, 'debit'));
+            $inHand = $totalIncome - $totalExpense;
+
+            // Create spreadsheet
+            $spreadsheet = new Spreadsheet();
+            $sheet = $spreadsheet->getActiveSheet();
+
+            // Find logo path
+            $logoPath = $this->formService->findLogoPath();
+
+            // Add logo if available
+            $row = 1;
+            if ($logoPath && file_exists($logoPath)) {
+                $sheet->getColumnDimension('A')->setWidth(11.5);
+                $sheet->mergeCells('A1:A3');
+                $sheet->getRowDimension(1)->setRowHeight(20);
+                $sheet->getRowDimension(2)->setRowHeight(20);
+                $sheet->getRowDimension(3)->setRowHeight(20);
+
+                $sheet->getStyle('A1:A3')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $sheet->getStyle('A1:A3')->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
+
+                $columnWidthPixels = 11.5 * 7;
+                $imageHeight = 70;
+                $imageWidth = $imageHeight;
+                $offsetX = ($columnWidthPixels - $imageWidth) / 2;
+                $offsetY = (60 - $imageHeight) / 2;
+
+                $drawing = new Drawing();
+                $drawing->setName('Monogram');
+                $drawing->setDescription('Monogram');
+                $drawing->setPath($logoPath);
+                $drawing->setHeight($imageHeight);
+                $drawing->setWidth($imageWidth);
+                $drawing->setCoordinates('A1');
+                $drawing->setOffsetX(max(0, $offsetX));
+                $drawing->setOffsetY(max(0, $offsetY));
+                $drawing->setWorksheet($sheet);
+            } else {
+                $sheet->getColumnDimension('A')->setWidth(11.5);
+            }
+
+            // Header Section
+            $row = 1;
+            $sheet->setCellValue('B' . $row, 'CLIENT');
+            $sheet->setCellValue('C' . $row, strtoupper($form->client_name));
+            // Financial summary on the right - row 1
+            $sheet->setCellValue('E' . $row, 'T. INCOME');
+            $sheet->setCellValue('F' . $row, number_format($totalIncome, 0, '.', ','));
+            $row++;
+
+            $sheet->setCellValue('B' . $row, 'LOCATION');
+            $sheet->setCellValue('C' . $row, strtoupper($form->project_name));
+            // Financial summary on the right - row 2
+            $sheet->setCellValue('E' . $row, 'T.EXPENCE');
+            $sheet->setCellValue('F' . $row, number_format($totalExpense, 0, '.', ','));
+            $row++;
+
+            $sheet->setCellValue('B' . $row, 'STARTING');
+            $startingDate = $form->created_at ? $form->created_at->format('d.m.Y') : date('d.m.Y');
+            $sheet->setCellValue('C' . $row, $startingDate);
+            // Financial summary on the right - row 3
+            $sheet->setCellValue('E' . $row, 'INHAND');
+            $sheet->setCellValue('F' . $row, number_format($inHand, 0, '.', ','));
+
+            // Style header rows
+            $headerLabelStyle = [
+                'font' => ['bold' => true, 'size' => 12, 'color' => ['rgb' => '000000']],
+                'alignment' => [
+                    'horizontal' => Alignment::HORIZONTAL_LEFT,
+                    'vertical' => Alignment::VERTICAL_CENTER
+                ]
+            ];
+            $headerValueStyle = [
+                'font' => ['bold' => true, 'size' => 12, 'color' => ['rgb' => '000000']],
+                'alignment' => [
+                    'horizontal' => Alignment::HORIZONTAL_LEFT,
+                    'vertical' => Alignment::VERTICAL_CENTER
+                ]
+            ];
+            $financialLabelStyle = [
+                'font' => ['bold' => true, 'size' => 12, 'color' => ['rgb' => '000000']],
+                'alignment' => [
+                    'horizontal' => Alignment::HORIZONTAL_LEFT,
+                    'vertical' => Alignment::VERTICAL_CENTER
+                ]
+            ];
+            $financialValueStyle = [
+                'font' => ['bold' => false, 'size' => 12, 'color' => ['rgb' => '000000']],
+                'alignment' => [
+                    'horizontal' => Alignment::HORIZONTAL_RIGHT,
+                    'vertical' => Alignment::VERTICAL_CENTER
+                ]
+            ];
+
+            $sheet->getStyle('B1:B3')->applyFromArray($headerLabelStyle);
+            $sheet->getStyle('C1:C3')->applyFromArray($headerValueStyle);
+            $sheet->getStyle('E1:E3')->applyFromArray($financialLabelStyle);
+            $sheet->getStyle('F1:F3')->applyFromArray($financialValueStyle);
+
+            // Set column widths
+            $sheet->getColumnDimension('B')->setWidth(15);
+            $sheet->getColumnDimension('C')->setWidth(30);
+            $sheet->getColumnDimension('D')->setWidth(5);
+            $sheet->getColumnDimension('E')->setWidth(15);
+            $sheet->getColumnDimension('F')->setWidth(15);
+
+            // Add spacing row
+            $row = 4;
+            $sheet->setCellValue('A' . $row, '');
+            $sheet->getRowDimension($row)->setRowHeight(5);
+
+            // Table Header
+            $tableHeaderRow = $row + 1;
+            $sheet->setCellValue('A' . $tableHeaderRow, 'S. NO');
+            $sheet->setCellValue('B' . $tableHeaderRow, 'DATED');
+            $sheet->setCellValue('C' . $tableHeaderRow, 'DESCRIPTION');
+            $sheet->setCellValue('D' . $tableHeaderRow, 'DEB');
+            $sheet->setCellValue('E' . $tableHeaderRow, 'CRD');
+            $sheet->setCellValue('F' . $tableHeaderRow, 'TOTAL');
+
+            // Style table header
+            $tableHeaderStyle = [
+                'font' => ['bold' => true, 'size' => 11],
+                'fill' => [
+                    'fillType' => Fill::FILL_SOLID,
+                    'startColor' => ['rgb' => 'E5E7EB']
+                ],
+                'alignment' => [
+                    'horizontal' => Alignment::HORIZONTAL_LEFT,
+                    'vertical' => Alignment::VERTICAL_CENTER
+                ],
+                'borders' => [
+                    'allBorders' => [
+                        'borderStyle' => Border::BORDER_THIN,
+                        'color' => ['rgb' => '000000']
+                    ]
+                ]
+            ];
+            $sheet->getStyle('A' . $tableHeaderRow . ':F' . $tableHeaderRow)->applyFromArray($tableHeaderStyle);
+
+            // Set column widths for table
+            $sheet->getColumnDimension('A')->setWidth(20);
+            $sheet->getColumnDimension('B')->setWidth(12);
+            $sheet->getColumnDimension('C')->setWidth(40);
+            $sheet->getColumnDimension('D')->setWidth(12);
+            $sheet->getColumnDimension('E')->setWidth(12);
+            $sheet->getColumnDimension('F')->setWidth(12);
+
+            // Table Data
+            $currentRow = $tableHeaderRow + 1;
+            $runningTotal = 0;
+            $rowIndex = 0;
+
+            foreach ($groupedSummaries as $summary) {
+                $sheet->setCellValue('A' . $currentRow, $summary['head_name']);
+                $sheet->setCellValue('B' . $currentRow, $summary['created_at']->format('Y-m-d'));
+                $sheet->setCellValue('C' . $currentRow, $summary['description']);
+                $sheet->setCellValue('D' . $currentRow, $summary['debit'] > 0 ? number_format($summary['debit'], 0, '.', ',') : '');
+                $sheet->setCellValue('E' . $currentRow, $summary['credit'] > 0 ? number_format($summary['credit'], 0, '.', ',') : '');
+
+                // Calculate running total using the same logic as JavaScript
+                $debit = $summary['debit'] ?? 0;
+                $credit = $summary['credit'] ?? 0;
+
+                if ($rowIndex === 0) {
+                    // First row: total equals debit or credit amount
+                    if ($credit > 0 && $debit > 0) {
+                        $runningTotal = $credit - $debit;
+                    } elseif ($credit > 0) {
+                        $runningTotal = $credit;
+                    } elseif ($debit > 0) {
+                        $runningTotal = -$debit;
+                    } else {
+                        $runningTotal = 0;
+                    }
+                } else {
+                    // Other rows: if previous total > 0, subtract debit and add credit
+                    if ($runningTotal > 0) {
+                        $runningTotal = $runningTotal - $debit + $credit;
+                    } else {
+                        // If previous total <= 0, still apply the same logic for consistency
+                        $runningTotal = $runningTotal - $debit + $credit;
+                    }
+                }
+
+                $sheet->setCellValue('F' . $currentRow, number_format($runningTotal, 0, '.', ','));
+
+                // Style table row
+                $tableRowStyle = [
+                    'alignment' => [
+                        'horizontal' => Alignment::HORIZONTAL_LEFT,
+                        'vertical' => Alignment::VERTICAL_CENTER
+                    ],
+                    'borders' => [
+                        'allBorders' => [
+                            'borderStyle' => Border::BORDER_THIN,
+                            'color' => ['rgb' => '000000']
+                        ]
+                    ]
+                ];
+                $sheet->getStyle('A' . $currentRow . ':F' . $currentRow)->applyFromArray($tableRowStyle);
+
+                // Right align numeric columns
+                $sheet->getStyle('D' . $currentRow . ':F' . $currentRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+
+                // Set row height for table rows
+                $sheet->getRowDimension($currentRow)->setRowHeight(25);
+
+                $currentRow++;
+                $rowIndex++;
+            }
+
+            // Add 3-4 blank rows after the table
+            $currentRow += 3;
+
+            // Summary Section
+            $summaryHeaderRow = $currentRow;
+            $sheet->mergeCells('A' . $summaryHeaderRow . ':F' . $summaryHeaderRow);
+            $sheet->setCellValue('A' . $summaryHeaderRow, 'Summary');
+
+            // Style summary header
+            $summaryHeaderStyle = [
+                'font' => ['bold' => true, 'size' => 14],
+                'alignment' => [
+                    'horizontal' => Alignment::HORIZONTAL_CENTER,
+                    'vertical' => Alignment::VERTICAL_CENTER
+                ],
+                'fill' => [
+                    'fillType' => Fill::FILL_SOLID,
+                    'startColor' => ['rgb' => 'E5E7EB']
+                ],
+                'borders' => [
+                    'allBorders' => [
+                        'borderStyle' => Border::BORDER_THIN,
+                        'color' => ['rgb' => '000000']
+                    ]
+                ]
+            ];
+            $sheet->getStyle('A' . $summaryHeaderRow . ':F' . $summaryHeaderRow)->applyFromArray($summaryHeaderStyle);
+
+            // Get all CD heads with their items
+            $cdHeads = CdHead::where('form_id', $form->id)
+                ->with('cdItems')
+                ->orderBy('created_at', 'asc')
+                ->get();
+
+            // Calculate sum of debit amounts for each head from summaries
+            $headAmounts = [];
+            $totalDebitAmount = 0;
+            foreach ($cdSummaries as $summary) {
+                // Only include debit type
+                if ($summary->cd_type === 'debit') {
+                    $headId = $summary->head_id;
+                    if (!isset($headAmounts[$headId])) {
+                        $headAmounts[$headId] = 0;
+                    }
+                    $headAmounts[$headId] += $summary->amount;
+                    $totalDebitAmount += $summary->amount;
+                }
+            }
+
+            // Add summary data rows - only for heads with debit amounts
+            $currentRow = $summaryHeaderRow + 1;
+            foreach ($cdHeads as $head) {
+                // Skip heads with no debit amount
+                $headAmount = isset($headAmounts[$head->id]) ? $headAmounts[$head->id] : 0;
+                if ($headAmount == 0) {
+                    continue;
+                }
+
+                // Head name in column B
+                $sheet->setCellValue('B' . $currentRow, $head->name);
+
+                // Items (comma separated) in column C
+                $items = $head->cdItems->pluck('name')->implode(', ');
+                $sheet->setCellValue('C' . $currentRow, $items);
+
+                // Sum of debit amount for this head in column D
+                $sheet->setCellValue('D' . $currentRow, number_format($headAmount, 0, '.', ','));
+                $sheet->getRowDimension($currentRow)->setRowHeight(25);
+
+                // Style summary row
+                $summaryRowStyle = [
+                    'alignment' => [
+                        'horizontal' => Alignment::HORIZONTAL_LEFT,
+                        'vertical' => Alignment::VERTICAL_CENTER
+                    ],
+                ];
+                $sheet->getStyle('B' . $currentRow . ':D' . $currentRow)->applyFromArray($summaryRowStyle);
+
+                // Right align column D (amount)
+                $sheet->getStyle('D' . $currentRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+
+                $currentRow++;
+            }
+
+            // Add total row after all heads
+            $sheet->setCellValue('B' . $currentRow, 'Total');
+            $sheet->setCellValue('C' . $currentRow, '');
+            $sheet->setCellValue('D' . $currentRow, number_format($totalDebitAmount, 0, '.', ','));
+
+            // Style total row
+            $totalRowStyle = [
+                'font' => ['bold' => true],
+                'alignment' => [
+                    'horizontal' => Alignment::HORIZONTAL_LEFT,
+                    'vertical' => Alignment::VERTICAL_CENTER
+                ]
+            ];
+            $sheet->getStyle('B' . $currentRow . ':D' . $currentRow)->applyFromArray($totalRowStyle);
+
+            // Right align column D (total amount)
+            $sheet->getStyle('D' . $currentRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+
+            // Set row height for total row
+            $sheet->getRowDimension($currentRow)->setRowHeight(25);
+
+            // Create writer
+            $writer = new Xlsx($spreadsheet);
+
+            // Generate filename
+            $clientName = str_replace(' ', '_', $form->client_name);
+            $projectName = str_replace(' ', '_', $form->project_name);
+            $filename = $clientName . '_' . $projectName . '_CD_Summary_' . date('Y-m-d') . '.xlsx';
+
+            // Return as download
+            return new StreamedResponse(
+                function () use ($writer) {
+                    $writer->save('php://output');
+                },
+                200,
+                [
+                    'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+                    'Cache-Control' => 'max-age=0',
+                ]
+            );
+        } catch (\Exception $e) {
+            return redirect()->route('forms.cd', $form->id)
+                ->with('error', 'Failed to export CD summary: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -699,41 +1129,6 @@ class FormController extends Controller
         }
     }
 
-    /**
-     * Update or create CD ledger for a form.
-     */
-    public function updateCdLedger(Request $request, Form $form): JsonResponse
-    {
-        $validated = $request->validate([
-            'income' => 'required|numeric|min:0',
-        ]);
-
-        try {
-            $cdLedger = CdLedger::updateOrCreate(
-                [
-                    'user_id' => Auth::id(),
-                    'form_id' => $form->id,
-                ],
-                [
-                    'income' => $validated['income'],
-                ]
-            );
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Total income updated successfully.',
-                'ledger' => [
-                    'id' => $cdLedger->id,
-                    'income' => $cdLedger->income,
-                ],
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update income: ' . $e->getMessage(),
-            ], 500);
-        }
-    }
 
     /**
      * Get CD heads for autocomplete.
@@ -769,11 +1164,21 @@ class FormController extends Controller
         ]);
 
         try {
+
+            $cdLedger = CdLedger::where('form_id', $form->id)->first();
+            if (!$cdLedger) {
+                $cdLedger = CdLedger::create([
+                    'user_id' => Auth::id(),
+                    'form_id' => $form->id,
+                    'income' => 0,
+                ]);
+            }
+
             // Delete all existing summaries for this form
             CdSummary::where('form_id', $form->id)->delete();
 
             $created = [];
-
+            $totalAmount = 0;
             foreach ($validated['summaries'] as $summary) {
                 // Find or create head by name
                 $head = CdHead::where('form_id', $form->id)
@@ -805,8 +1210,14 @@ class FormController extends Controller
                     'cd_type' => $cdSummary->cd_type,
                     'amount' => $cdSummary->amount,
                 ];
+                if ($summary['cd_type'] === 'credit') {
+                    $totalAmount += $summary['amount'];
+                }
             }
 
+            CdLedger::where("form_id", $form->id)->update([
+                "income" => $totalAmount,
+            ]);
             return response()->json([
                 'success' => true,
                 'message' => 'Credit/Debit summary saved successfully.',

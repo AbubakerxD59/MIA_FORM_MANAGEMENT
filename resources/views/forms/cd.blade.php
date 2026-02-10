@@ -155,8 +155,8 @@
                             Credit/Debit
                         </h2>
 
-                        <!-- Add Head Button -->
-                        <div class="mb-4">
+                        <!-- Add Head and Export Buttons -->
+                        <div class="mb-4 space-y-2">
                             <button type="button" id="addHeadBtn"
                                 class="w-full inline-flex items-center justify-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-sm transition-colors duration-200">
                                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -165,6 +165,15 @@
                                 </svg>
                                 Add Head
                             </button>
+                            <a href="{{ route('forms.cd.export', $form->id) }}"
+                                class="w-full inline-flex items-center justify-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg shadow-sm transition-colors duration-200">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                                    </path>
+                                </svg>
+                                Export Excel
+                            </a>
                         </div>
 
                         <!-- Sidebar Items List -->
@@ -250,25 +259,15 @@
                         </div>
                         <!-- Total Income Section -->
                         <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
-                            <form id="updateIncomeForm">
-                                @csrf
-                                <div class="flex items-end gap-3">
-                                    <div class="flex-1 max-w-md">
-                                        <label for="total_income"
-                                            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                            Total Income
-                                        </label>
-                                        <input type="number" id="total_income" name="income" step="0.01"
-                                            min="0" value="{{ $totalIncome }}"
-                                            placeholder="Enter total income"
-                                            class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
-                                    </div>
-                                    <button type="submit" id="updateIncomeBtn"
-                                        class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors duration-200">
-                                        Update
-                                    </button>
-                                </div>
-                            </form>
+                            <div class="flex-1 max-w-md">
+                                <label for="total_income"
+                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Total Income
+                                </label>
+                                <input type="number" id="total_income" name="income" step="0.01"
+                                    min="0" value="{{ $totalIncome }}" placeholder="Total income" readonly
+                                    class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white cursor-not-allowed">
+                            </div>
                         </div>
                     </div>
 
@@ -418,12 +417,16 @@
                                         @for ($i = 1; $i <= 50; $i++)
                                             @php
                                                 $summaryIndex = $i - 1;
-                                                $summary = isset($existingSummaries[$summaryIndex]) ? $existingSummaries[$summaryIndex] : null;
+                                                $summary = isset($existingSummaries[$summaryIndex])
+                                                    ? $existingSummaries[$summaryIndex]
+                                                    : null;
                                                 $snoValue = $summary ? $summary['head_name'] : '';
-                                                $datedValue = $summary ? $summary['created_at']->format('Y-m-d') : date('Y-m-d');
-                                                $descriptionValue = $summary ? ($summary['description'] ?? '') : '';
-                                                $debitValue = $summary ? (int)$summary['debit'] : '';
-                                                $creditValue = $summary ? (int)$summary['credit'] : '';
+                                                $datedValue = $summary
+                                                    ? $summary['created_at']->format('Y-m-d')
+                                                    : date('Y-m-d');
+                                                $descriptionValue = $summary ? $summary['description'] ?? '' : '';
+                                                $debitValue = $summary ? (int) $summary['debit'] : '';
+                                                $creditValue = $summary ? (int) $summary['credit'] : '';
                                             @endphp
                                             <tr class="cd-summary-row" data-row-index="{{ $i }}">
                                                 <td class="px-6 py-2" style="width: 25%;">
@@ -436,7 +439,8 @@
                                                         class="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
                                                 </td>
                                                 <td class="px-6 py-2" style="width: 40%;">
-                                                    <input type="text" name="description[]" value="{{ $descriptionValue }}"
+                                                    <input type="text" name="description[]"
+                                                        value="{{ $descriptionValue }}"
                                                         placeholder="Enter description"
                                                         class="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
                                                 </td>
@@ -457,12 +461,15 @@
                                                     0
                                                 </td>
                                                 <td class="px-6 py-2 whitespace-nowrap text-center">
-                                                    <button type="button" 
-                                                        onclick="deleteRow(this)"
+                                                    <button type="button" onclick="deleteRow(this)"
                                                         class="delete-row-btn p-1.5 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
                                                         title="Delete row">
-                                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                                        <svg class="w-5 h-5" fill="none" stroke="currentColor"
+                                                            viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                                stroke-width="2"
+                                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                                                            </path>
                                                         </svg>
                                                     </button>
                                                 </td>
@@ -485,7 +492,8 @@
                     <button type="button" id="addRowBtn"
                         class="px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg shadow-sm transition-colors duration-200 flex items-center">
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4">
+                            </path>
                         </svg>
                         Add Row
                     </button>
@@ -625,50 +633,6 @@
             // Handle Add Item Field button
             $('#addItemFieldBtn').on('click', function() {
                 addItemField();
-            });
-
-            // Handle Update Income form submission
-            $('#updateIncomeForm').on('submit', function(e) {
-                e.preventDefault();
-
-                const income = parseFloat($('#total_income').val());
-                if (isNaN(income) || income < 0) {
-                    alert('Please enter a valid income amount');
-                    return;
-                }
-
-                const updateBtn = $('#updateIncomeBtn');
-                const originalText = updateBtn.text();
-                updateBtn.prop('disabled', true).text('Updating...');
-
-                $.ajax({
-                    url: `/api/forms/${currentFormId}/cd-ledger`,
-                    method: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
-                        'Accept': 'application/json'
-                    },
-                    data: {
-                        income: income
-                    },
-                    success: function(response) {
-                        updateBtn.prop('disabled', false).text(originalText);
-                        alert('Total income updated successfully');
-                    },
-                    error: function(xhr) {
-                        updateBtn.prop('disabled', false).text(originalText);
-
-                        let errorMessage = 'An error occurred. Please try again.';
-                        if (xhr.responseJSON && xhr.responseJSON.message) {
-                            errorMessage = xhr.responseJSON.message;
-                        } else if (xhr.responseJSON && xhr.responseJSON.errors) {
-                            const errors = Object.values(xhr.responseJSON.errors).flat();
-                            errorMessage = errors.join('\n');
-                        }
-
-                        alert(errorMessage);
-                    }
-                });
             });
 
             // Handle Save Items form submission
@@ -868,10 +832,10 @@
                                 </div>
                                 <!-- Items under this head -->
                                 ${head.items && head.items.length > 0 ? `
-                                        <div class="head-items-container hidden ml-2 mt-2 space-y-1 border-l-2 border-indigo-300 dark:border-indigo-600 pl-2"
-                                            data-head-items="${head.id}">
-                                            ${head.items.map(function(item) {
-                                                return `
+                                                                <div class="head-items-container hidden ml-2 mt-2 space-y-1 border-l-2 border-indigo-300 dark:border-indigo-600 pl-2"
+                                                                    data-head-items="${head.id}">
+                                                                    ${head.items.map(function(item) {
+                                                                        return `
                                                 <div class="p-2 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
                                                     onclick="event.stopPropagation(); loadItem(${item.id})">
                                                     <p class="text-xs font-medium text-gray-700 dark:text-gray-300">
@@ -879,9 +843,9 @@
                                                     </p>
                                                 </div>
                                             `;
-                                            }).join('')}
-                                        </div>
-                                    ` : ''}
+                                                                    }).join('')}
+                                                                </div>
+                                                            ` : ''}
                             </div>
                         `;
                         sidebarList.append(headHtml);
@@ -917,33 +881,62 @@
             }
         }
 
-        // Get initial total income
-        const initialTotalIncome = parseFloat({{ $totalIncome }}) || 0;
+        // Get initial total income and base income
+        window.baseIncome = parseFloat({{ $baseIncome ?? 0 }}) || 0;
+        window.initialTotalIncome = parseFloat({{ $totalIncome }}) || 0;
+
+        // Function to update displayed total income
+        function updateDisplayedTotalIncome() {
+            // Calculate total credit from current summaries
+            let totalCredit = 0;
+            $('.credit-input').each(function() {
+                const creditVal = $(this).val();
+                const creditValue = creditVal ? Number(creditVal) || 0 : 0;
+                totalCredit = Number(totalCredit) + Number(creditValue);
+            });
+
+            // Get current base income (may have been updated)
+            const currentBaseIncome = window.baseIncome !== undefined ? window.baseIncome : parseFloat(
+                {{ $baseIncome ?? 0 }}) || 0;
+
+            // Update displayed total income (base income + total credits)
+            const newTotalIncome = totalCredit;
+            $('#total_income').val(newTotalIncome);
+
+            // Update the initial total income for calculations
+            window.initialTotalIncome = newTotalIncome;
+        }
 
         // Function to get the base total for a row (previous row's total or total income for first row)
         function getBaseTotalForRow(row) {
             const rowIndex = parseInt(row.data('row-index')) || 1;
 
+            // Use the current initialTotalIncome (which may have been updated)
+            const currentTotalIncome = window.initialTotalIncome !== undefined ? Number(window.initialTotalIncome) : Number(
+                {{ $totalIncome }}) || 0;
+
             if (rowIndex === 1) {
                 // First row uses total income as base
-                return initialTotalIncome;
+                return currentTotalIncome;
             } else {
                 // Get previous row's total
                 const prevRow = $(`.cd-summary-row[data-row-index="${rowIndex - 1}"]`);
-                
+
                 // Check if previous row exists
                 if (prevRow.length === 0) {
-                    return initialTotalIncome;
+                    return currentTotalIncome;
                 }
-                
+
                 const prevTotalText = prevRow.find('.total-cell').text();
-                const prevTotal = prevTotalText ? parseInt(prevTotalText.trim().replace(/[^0-9-]/g, '')) || 0 : 0;
+                const prevTotal = prevTotalText ? Number(prevTotalText.trim().replace(/[^0-9.-]/g, '')) || 0 : 0;
 
                 // If previous row has no data, use total income
                 if (prevTotal === 0) {
                     // Check if previous row has any data
-                    const prevDebit = parseInt(prevRow.find('.debit-input').val()) || 0;
-                    const prevCredit = parseInt(prevRow.find('.credit-input').val()) || 0;
+                    const prevDebitVal = prevRow.find('.debit-input').val();
+                    const prevCreditVal = prevRow.find('.credit-input').val();
+                    const prevDebit = prevDebitVal ? Number(prevDebitVal) || 0 : 0;
+                    const prevCredit = prevCreditVal ? Number(prevCreditVal) || 0 : 0;
                     const prevSnoVal = prevRow.find('input[name="sno[]"]').val();
                     const prevSno = prevSnoVal ? prevSnoVal.trim() : '';
                     const prevDatedVal = prevRow.find('input[name="dated[]"]').val();
@@ -951,9 +944,10 @@
                     const prevDescriptionVal = prevRow.find('input[name="description[]"]').val();
                     const prevDescription = prevDescriptionVal ? prevDescriptionVal.trim() : '';
 
-                    if (prevDebit === 0 && prevCredit === 0 && prevSno === '' && prevDated === '' && prevDescription === '') {
+                    if (prevDebit === 0 && prevCredit === 0 && prevSno === '' && prevDated === '' && prevDescription ===
+                        '') {
                         // Previous row is empty, use total income
-                        return initialTotalIncome;
+                        return currentTotalIncome;
                     }
                 }
 
@@ -963,6 +957,7 @@
 
         // Function to recalculate all rows from a given row index
         function recalculateFromRow(startRowIndex) {
+            // Calculate from scratch - process all rows in order
             $('.cd-summary-row').each(function() {
                 const row = $(this);
                 const rowIndex = parseInt(row.data('row-index')) || 1;
@@ -971,21 +966,55 @@
                     return; // Skip rows before the changed row
                 }
 
-                const debit = parseInt(row.find('.debit-input').val()) || 0;
-                const credit = parseInt(row.find('.credit-input').val()) || 0;
-                const sno = row.find('input[name="sno[]"]').val().trim();
-                const dated = row.find('input[name="dated[]"]').val();
-                const description = row.find('input[name="description[]"]').val().trim();
+                const debitVal = row.find('.debit-input').val();
+                const creditVal = row.find('.credit-input').val();
+                const debit = debitVal ? Number(debitVal) || 0 : 0;
+                const credit = creditVal ? Number(creditVal) || 0 : 0;
 
                 // Check if this row has any values entered
-                const hasData = debit > 0 || credit > 0 || sno !== '' || dated !== '' || description !== '';
+                const hasData = debit > 0 || credit > 0;
 
                 if (hasData) {
-                    // Get base total (previous row's total or total income for first row)
-                    const baseTotal = getBaseTotalForRow(row);
-                    // Formula: Base Total - Debit + Credit (integer only)
-                    const rowTotal = Math.round(baseTotal - debit + credit);
-                    row.find('.total-cell').text(rowTotal);
+                    let rowTotal = 0;
+
+                    if (rowIndex === 1) {
+                        // First row: total amount equals debit or credit amount
+                        // If both exist, use credit - debit (net)
+                        if (credit > 0 && debit > 0) {
+                            rowTotal = credit - debit;
+                        } else if (credit > 0) {
+                            rowTotal = credit;
+                        } else if (debit > 0) {
+                            rowTotal = -debit;
+                        }
+                    } else {
+                        // Get previous row's total
+                        const prevRow = $(`.cd-summary-row[data-row-index="${rowIndex - 1}"]`);
+                        
+                        if (prevRow.length > 0) {
+                            const prevTotalText = prevRow.find('.total-cell').text();
+                            const prevTotal = prevTotalText ? Number(prevTotalText.trim().replace(/[^0-9.-]/g, '')) || 0 : 0;
+                            
+                            if (prevTotal > 0) {
+                                // If previous total > 0: subtract debit and add credit
+                                rowTotal = prevTotal - debit + credit;
+                            } else {
+                                // If previous total <= 0: still apply the same logic
+                                rowTotal = prevTotal - debit + credit;
+                            }
+                        } else {
+                            // No previous row found, treat as first row
+                            if (credit > 0 && debit > 0) {
+                                rowTotal = credit - debit;
+                            } else if (credit > 0) {
+                                rowTotal = credit;
+                            } else if (debit > 0) {
+                                rowTotal = -debit;
+                            }
+                        }
+                    }
+
+                    row.find('.total-cell').text(Math.round(rowTotal));
                 } else {
                     // Reset to 0 if row is empty
                     row.find('.total-cell').text('0');
@@ -995,7 +1024,7 @@
 
         // Calculate total for each row: Previous row's total - DEB + CRD
         // First row uses Total Income as base
-        $(document).on('input', '.debit-input, .credit-input', function() {
+        $(document).on('keyup', '.debit-input, .credit-input', function() {
             // Remove any non-numeric characters except digits
             let value = $(this).val().replace(/[^0-9]/g, '');
             if (value !== $(this).val()) {
@@ -1007,15 +1036,17 @@
 
             // Recalculate from this row onwards
             recalculateFromRow(rowIndex);
+
+            // Update displayed total income when credit values change
+            if ($(this).hasClass('credit-input')) {
+                updateDisplayedTotalIncome();
+            }
         });
 
         // Reset total to 0 when row fields are cleared and recalculate subsequent rows
         $(document).on('input', 'input[name="sno[]"], input[name="dated[]"], input[name="description[]"]', function() {
             const row = $(this).closest('tr');
             const rowIndex = parseInt(row.data('row-index')) || 1;
-
-            // Recalculate from this row onwards
-            recalculateFromRow(rowIndex);
         });
 
         // Function to setup autocomplete for S. NO fields (using CD heads)
@@ -1120,10 +1151,10 @@
             const rowIndex = getNextRowIndex();
             const newRowHTML = getNewRowHTML(rowIndex);
             const $newRow = $(newRowHTML);
-            
+
             // Append the new row
             tbody.append($newRow);
-            
+
             // Initialize autocomplete for the new row's S. NO field
             $newRow.find('.sno-autocomplete').autocomplete({
                 source: function(request, response) {
@@ -1155,16 +1186,17 @@
         // Function to delete a row
         function deleteRow(button) {
             const row = $(button).closest('tr');
-            
+
             // Confirm deletion
             if (!confirm('Are you sure you want to delete this row?')) {
                 return;
             }
-            
+
             // Remove the row from the table
             row.remove();
-            
+
             // Recalculate totals starting from the first row
+            console.log('2');
             recalculateFromRow(1);
         }
 
@@ -1184,9 +1216,11 @@
             });
 
             // Recalculate totals for existing data on page load
-            @if(isset($groupedSummaries) && count($groupedSummaries) > 0)
+            @if (isset($groupedSummaries) && count($groupedSummaries) > 0)
                 // Recalculate all rows to set correct totals
                 recalculateFromRow(1);
+                // Update displayed total income to reflect current credits
+                updateDisplayedTotalIncome();
             @endif
         });
 
@@ -1203,8 +1237,10 @@
                 const headName = row.find('input[name="sno[]"]').val().trim();
                 const dated = row.find('input[name="dated[]"]').val();
                 const description = row.find('input[name="description[]"]').val().trim();
-                const debit = parseInt(row.find('input[name="debit[]"]').val()) || 0;
-                const credit = parseInt(row.find('input[name="credit[]"]').val()) || 0;
+                const debitVal = row.find('input[name="debit[]"]').val();
+                const creditVal = row.find('input[name="credit[]"]').val();
+                const debit = debitVal ? Number(debitVal) || 0 : 0;
+                const credit = creditVal ? Number(creditVal) || 0 : 0;
 
                 // Only include rows with at least one field filled
                 if (headName || dated || description || debit > 0 || credit > 0) {

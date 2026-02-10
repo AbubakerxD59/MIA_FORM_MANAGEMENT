@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class CdSummary extends Model
 {
-    use HasFactory, SoftDeletes, CreatedBy;
+    use HasFactory, CreatedBy;
 
     /**
      * The table associated with the model.
