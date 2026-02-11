@@ -204,20 +204,6 @@
                                                 </svg>
                                             </button>
                                         </div>
-                                        <!-- Items under this head -->
-                                        @if ($head->cdItems->count() > 0)
-                                            <div class="head-items-container hidden ml-2 mt-2 space-y-1 border-l-2 border-indigo-300 dark:border-indigo-600 pl-2"
-                                                data-head-items="{{ $head->id }}">
-                                                @foreach ($head->cdItems as $item)
-                                                    <div class="p-2 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
-                                                        onclick="event.stopPropagation(); loadItem({{ $item->id }})">
-                                                        <p class="text-xs font-medium text-gray-700 dark:text-gray-300">
-                                                            {{ $item->name ?: 'No Name' }}
-                                                        </p>
-                                                    </div>
-                                                @endforeach
-                                            </div>
-                                        @endif
                                     </div>
                                 @endforeach
                             @else
@@ -308,11 +294,11 @@
                         </form>
                     </div>
 
-                    <!-- Edit Head and Add Items Section (Hidden by default, shows when head is selected) -->
+                    <!-- Edit Head Section (Hidden by default, shows when head is selected) -->
                     <div id="editHeadSection"
                         class="hidden bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
                         <div class="flex items-center justify-between mb-6">
-                            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Manage Head & Items</h2>
+                            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Manage Head</h2>
                         </div>
 
                         <!-- Edit Head Form -->
@@ -335,33 +321,6 @@
                                 </button>
                             </div>
                         </form>
-
-                        <!-- Add Items Form -->
-                        <form id="addItemsForm">
-                            @csrf
-                            <input type="hidden" id="items_head_id" name="head_id">
-                            <div class="mb-4">
-                                <h3 class="text-md font-semibold text-gray-900 dark:text-white mb-4">Add Items</h3>
-                            </div>
-                            <div id="itemsContainer" class="space-y-4 mb-4">
-                                <!-- Item fields will be dynamically added here -->
-                            </div>
-                            <div class="flex justify-between items-center">
-                                <button type="button" id="addItemFieldBtn"
-                                    class="px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg transition-colors duration-200">
-                                    <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor"
-                                        viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M12 4v16m8-8H4"></path>
-                                    </svg>
-                                    Add Item
-                                </button>
-                                <button type="submit" id="saveItemsBtn"
-                                    class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors duration-200">
-                                    Save Items
-                                </button>
-                            </div>
-                        </form>
                     </div>
 
                     <!-- Credit/Debit Content Section -->
@@ -377,9 +336,13 @@
                                 <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                                     <thead class="bg-gray-50 dark:bg-gray-700">
                                         <tr>
+                                            <th scope="col" style="width: 8%;"
+                                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                                S. No
+                                            </th>
                                             <th scope="col" style="width: 25%;"
                                                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                                S. NO
+                                                Account
                                             </th>
                                             <th scope="col"
                                                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
@@ -429,9 +392,13 @@
                                                 $creditValue = $summary ? (int) $summary['credit'] : '';
                                             @endphp
                                             <tr class="cd-summary-row" data-row-index="{{ $i }}">
+                                                <td class="px-6 py-2 text-center" style="width: 8%;">
+                                                    <span
+                                                        class="text-sm text-gray-900 dark:text-white">{{ $i }}</span>
+                                                </td>
                                                 <td class="px-6 py-2" style="width: 25%;">
                                                     <input type="text" name="sno[]" value="{{ $snoValue }}"
-                                                        placeholder="Enter item name"
+                                                        placeholder="Enter head name"
                                                         class="sno-autocomplete w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
                                                 </td>
                                                 <td class="px-6 py-2 whitespace-nowrap">
@@ -521,8 +488,6 @@
                 $('#editHeadSection').addClass('hidden');
                 // Remove active state from sidebar
                 $('.sidebar-head-item').removeClass('active');
-                // Hide all items containers
-                $('.head-items-container').addClass('hidden');
                 currentHeadId = null;
 
                 $('#createHeadSection').removeClass('hidden').addClass('animate-slide-in');
@@ -611,8 +576,19 @@
                     },
                     success: function(response) {
                         updateBtn.prop('disabled', false).text(originalText);
-                        // Refresh sidebar
-                        location.reload();
+
+                        // Update the head name in the sidebar without reloading
+                        const headElement = $(`.sidebar-head-item[data-head-id="${headId}"]`);
+                        if (headElement.length > 0) {
+                            headElement.find('p.text-sm.font-semibold').text(headName ||
+                                'No Name');
+                        }
+
+                        // Show success message
+                        alert('Head updated successfully!');
+
+                        // Optionally refresh sidebar to ensure consistency
+                        refreshSidebar(headId);
                     },
                     error: function(xhr) {
                         updateBtn.prop('disabled', false).text(originalText);
@@ -630,72 +606,10 @@
                 });
             });
 
-            // Handle Add Item Field button
-            $('#addItemFieldBtn').on('click', function() {
-                addItemField();
-            });
-
-            // Handle Save Items form submission
-            $('#addItemsForm').on('submit', function(e) {
-                e.preventDefault();
-
-                const headId = $('#items_head_id').val();
-                const items = [];
-                $('input[name="items[]"]').each(function() {
-                    const itemName = $(this).val().trim();
-                    if (itemName) {
-                        items.push(itemName);
-                    }
-                });
-
-                if (items.length === 0) {
-                    alert('Please enter at least one item name');
-                    return;
-                }
-
-                const saveBtn = $('#saveItemsBtn');
-                const originalText = saveBtn.text();
-                saveBtn.prop('disabled', true).text('Saving...');
-
-                $.ajax({
-                    url: `/api/cd-heads/${headId}/items`,
-                    method: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
-                        'Accept': 'application/json'
-                    },
-                    data: {
-                        items: items
-                    },
-                    success: function(response) {
-                        saveBtn.prop('disabled', false).text(originalText);
-                        // Clear item fields
-                        $('#itemsContainer').html(getEmptyItemField());
-                        // Refresh sidebar and update autocomplete
-                        location.reload();
-                    },
-                    error: function(xhr) {
-                        saveBtn.prop('disabled', false).text(originalText);
-
-                        let errorMessage = 'An error occurred. Please try again.';
-                        if (xhr.responseJSON && xhr.responseJSON.message) {
-                            errorMessage = xhr.responseJSON.message;
-                        } else if (xhr.responseJSON && xhr.responseJSON.errors) {
-                            const errors = Object.values(xhr.responseJSON.errors).flat();
-                            errorMessage = errors.join('\n');
-                        }
-
-                        alert(errorMessage);
-                    }
-                });
-            });
         });
 
         // Function to load head and make it active
         function loadHead(headId) {
-            // Hide all items containers
-            $('.head-items-container').addClass('hidden');
-
             // Remove active state from all heads
             $('.sidebar-head-item').removeClass('active');
             // Hide create head section
@@ -703,9 +617,6 @@
 
             // Make selected head active
             $(`.sidebar-head-item[data-head-id="${headId}"]`).addClass('active');
-
-            // Show items for the selected head
-            $(`.head-items-container[data-head-items="${headId}"]`).removeClass('hidden');
 
             currentHeadId = headId;
 
@@ -722,64 +633,11 @@
                     $('#edit_head_id').val(response.head.id);
                     $('#edit_head_name').val(response.head.name);
                     $('#editHeadSection').removeClass('hidden').addClass('animate-slide-in');
-
-                    // Set head ID for items form
-                    $('#items_head_id').val(headId);
-                    // Reset items container with one empty field
-                    $('#itemsContainer').html(getEmptyItemField());
-                    updateRemoveButtons();
-                    // Show the combined section
-                    $('#editHeadSection').removeClass('hidden').addClass('animate-slide-in');
                 },
                 error: function(xhr) {
                     alert('Failed to load head details');
                 }
             });
-        }
-
-        // Function to add a new item field
-        function addItemField() {
-            const itemField = getEmptyItemField();
-            $('#itemsContainer').append(itemField);
-            updateRemoveButtons();
-        }
-
-        // Function to get empty item field HTML
-        function getEmptyItemField() {
-            return `
-                <div class="item-field-row">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Item Name
-                    </label>
-                    <div class="flex gap-2">
-                        <input type="text" name="items[]" 
-                            placeholder="Enter item name"
-                            class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
-                        <button type="button" class="remove-item-btn hidden px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors duration-200"
-                            onclick="removeItemField(this)">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-            `;
-        }
-
-        // Function to remove item field
-        function removeItemField(button) {
-            $(button).closest('.item-field-row').remove();
-            updateRemoveButtons();
-        }
-
-        // Function to update remove buttons visibility
-        function updateRemoveButtons() {
-            const itemRows = $('.item-field-row');
-            if (itemRows.length > 1) {
-                $('.remove-item-btn').removeClass('hidden');
-            } else {
-                $('.remove-item-btn').addClass('hidden');
-            }
         }
 
         // Function to refresh sidebar
@@ -830,22 +688,6 @@
                                         </svg>
                                     </button>
                                 </div>
-                                <!-- Items under this head -->
-                                ${head.items && head.items.length > 0 ? `
-                                                                <div class="head-items-container hidden ml-2 mt-2 space-y-1 border-l-2 border-indigo-300 dark:border-indigo-600 pl-2"
-                                                                    data-head-items="${head.id}">
-                                                                    ${head.items.map(function(item) {
-                                                                        return `
-                                                <div class="p-2 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
-                                                    onclick="event.stopPropagation(); loadItem(${item.id})">
-                                                    <p class="text-xs font-medium text-gray-700 dark:text-gray-300">
-                                                        ${item.name || 'No Name'}
-                                                    </p>
-                                                </div>
-                                            `;
-                                                                    }).join('')}
-                                                                </div>
-                                                            ` : ''}
                             </div>
                         `;
                         sidebarList.append(headHtml);
@@ -867,15 +709,9 @@
             });
         }
 
-        // Placeholder functions for future implementation
-        function loadItem(itemId) {
-            console.log('Loading item:', itemId);
-            // TODO: Implement item loading functionality
-        }
-
         function confirmDeleteHead(headId, headName) {
             if (confirm(
-                    `Are you sure you want to delete "${headName}"? This will also delete all items under this head.`)) {
+                    `Are you sure you want to delete "${headName}"?`)) {
                 // TODO: Implement delete functionality
                 console.log('Deleting head:', headId);
             }
@@ -990,11 +826,12 @@
                     } else {
                         // Get previous row's total
                         const prevRow = $(`.cd-summary-row[data-row-index="${rowIndex - 1}"]`);
-                        
+
                         if (prevRow.length > 0) {
                             const prevTotalText = prevRow.find('.total-cell').text();
-                            const prevTotal = prevTotalText ? Number(prevTotalText.trim().replace(/[^0-9.-]/g, '')) || 0 : 0;
-                            
+                            const prevTotal = prevTotalText ? Number(prevTotalText.trim().replace(/[^0-9.-]/g,
+                                '')) || 0 : 0;
+
                             if (prevTotal > 0) {
                                 // If previous total > 0: subtract debit and add credit
                                 rowTotal = prevTotal - debit + credit;
@@ -1049,7 +886,7 @@
             const rowIndex = parseInt(row.data('row-index')) || 1;
         });
 
-        // Function to setup autocomplete for S. NO fields (using CD heads)
+        // Function to setup autocomplete for Account fields (using CD heads)
         function setupSnoAutocomplete() {
             // Destroy existing autocomplete instances only if they exist
             $('.sno-autocomplete').each(function() {
@@ -1102,9 +939,12 @@
             const currentDate = '{{ date('Y-m-d') }}';
             return `
                 <tr class="cd-summary-row" data-row-index="${rowIndex}">
+                    <td class="px-6 py-2 text-center" style="width: 8%;">
+                        <span class="text-sm text-gray-900 dark:text-white">${rowIndex}</span>
+                    </td>
                     <td class="px-6 py-2" style="width: 25%;">
                         <input type="text" name="sno[]" value=""
-                            placeholder="Enter item name"
+                            placeholder="Enter head name"
                             class="sno-autocomplete w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
                     </td>
                     <td class="px-6 py-2 whitespace-nowrap">
@@ -1155,7 +995,7 @@
             // Append the new row
             tbody.append($newRow);
 
-            // Initialize autocomplete for the new row's S. NO field
+            // Initialize autocomplete for the new row's Account field
             $newRow.find('.sno-autocomplete').autocomplete({
                 source: function(request, response) {
                     $.ajax({

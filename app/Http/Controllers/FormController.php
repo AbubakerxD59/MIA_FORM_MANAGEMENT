@@ -9,7 +9,6 @@ use App\Models\BarBendingLocation;
 use App\Models\BarBendingFormLocation;
 use App\Models\Formula;
 use App\Models\CdHead;
-use App\Models\CdItem;
 use App\Models\CdLedger;
 use App\Models\CdSummary;
 use App\Services\FormService;
@@ -504,7 +503,6 @@ class FormController extends Controller
     public function cd(Form $form): View
     {
         $cdHeads = CdHead::where('form_id', $form->id)
-            ->with('cdItems')
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -666,251 +664,35 @@ class FormController extends Controller
 
             // Create spreadsheet
             $spreadsheet = new Spreadsheet();
-            $sheet = $spreadsheet->getActiveSheet();
 
-            // Find logo path
-            $logoPath = $this->formService->findLogoPath();
+            // Remove default sheet
+            $spreadsheet->removeSheetByIndex(0);
 
-            // Add logo if available
-            $row = 1;
-            if ($logoPath && file_exists($logoPath)) {
-                $sheet->getColumnDimension('A')->setWidth(11.5);
-                $sheet->mergeCells('A1:A3');
-                $sheet->getRowDimension(1)->setRowHeight(20);
-                $sheet->getRowDimension(2)->setRowHeight(20);
-                $sheet->getRowDimension(3)->setRowHeight(20);
+            // Create Summary sheet
+            $summarySheet = new \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet($spreadsheet, 'Summary');
+            $spreadsheet->addSheet($summarySheet, 0);
 
-                $sheet->getStyle('A1:A3')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-                $sheet->getStyle('A1:A3')->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
+            // Create Roznamcha sheet
+            $roznamchaSheet = new \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet($spreadsheet, 'Roznamcha');
+            $spreadsheet->addSheet($roznamchaSheet, 1);
 
-                $columnWidthPixels = 11.5 * 7;
-                $imageHeight = 70;
-                $imageWidth = $imageHeight;
-                $offsetX = ($columnWidthPixels - $imageWidth) / 2;
-                $offsetY = (60 - $imageHeight) / 2;
+            // Set active sheet to Summary
+            $spreadsheet->setActiveSheetIndex(0);
 
-                $drawing = new Drawing();
-                $drawing->setName('Monogram');
-                $drawing->setDescription('Monogram');
-                $drawing->setPath($logoPath);
-                $drawing->setHeight($imageHeight);
-                $drawing->setWidth($imageWidth);
-                $drawing->setCoordinates('A1');
-                $drawing->setOffsetX(max(0, $offsetX));
-                $drawing->setOffsetY(max(0, $offsetY));
-                $drawing->setWorksheet($sheet);
-            } else {
-                $sheet->getColumnDimension('A')->setWidth(11.5);
-            }
+            // Add header to Summary sheet
+            $this->addCdExportHeader($summarySheet, $form, $totalIncome, $totalExpense, $inHand);
 
-            // Header Section
-            $row = 1;
-            $sheet->setCellValue('B' . $row, 'CLIENT');
-            $sheet->setCellValue('C' . $row, strtoupper($form->client_name));
-            // Financial summary on the right - row 1
-            $sheet->setCellValue('E' . $row, 'T. INCOME');
-            $sheet->setCellValue('F' . $row, number_format($totalIncome, 0, '.', ','));
-            $row++;
+            // Add Summary Section to Summary sheet
+            $this->addSummarySection($summarySheet, $form, $cdSummaries);
 
-            $sheet->setCellValue('B' . $row, 'LOCATION');
-            $sheet->setCellValue('C' . $row, strtoupper($form->project_name));
-            // Financial summary on the right - row 2
-            $sheet->setCellValue('E' . $row, 'T.EXPENCE');
-            $sheet->setCellValue('F' . $row, number_format($totalExpense, 0, '.', ','));
-            $row++;
+            // Add header to Roznamcha sheet
+            $this->addCdExportHeader($roznamchaSheet, $form, $totalIncome, $totalExpense, $inHand);
 
-            $sheet->setCellValue('B' . $row, 'STARTING');
-            $startingDate = $form->created_at ? $form->created_at->format('d.m.Y') : date('d.m.Y');
-            $sheet->setCellValue('C' . $row, $startingDate);
-            // Financial summary on the right - row 3
-            $sheet->setCellValue('E' . $row, 'INHAND');
-            $sheet->setCellValue('F' . $row, number_format($inHand, 0, '.', ','));
+            // Add table to Roznamcha sheet
+            $this->addRoznamchaTable($roznamchaSheet, $groupedSummaries);
 
-            // Style header rows
-            $headerLabelStyle = [
-                'font' => ['bold' => true, 'size' => 12, 'color' => ['rgb' => '000000']],
-                'alignment' => [
-                    'horizontal' => Alignment::HORIZONTAL_LEFT,
-                    'vertical' => Alignment::VERTICAL_CENTER
-                ]
-            ];
-            $headerValueStyle = [
-                'font' => ['bold' => true, 'size' => 12, 'color' => ['rgb' => '000000']],
-                'alignment' => [
-                    'horizontal' => Alignment::HORIZONTAL_LEFT,
-                    'vertical' => Alignment::VERTICAL_CENTER
-                ]
-            ];
-            $financialLabelStyle = [
-                'font' => ['bold' => true, 'size' => 12, 'color' => ['rgb' => '000000']],
-                'alignment' => [
-                    'horizontal' => Alignment::HORIZONTAL_LEFT,
-                    'vertical' => Alignment::VERTICAL_CENTER
-                ]
-            ];
-            $financialValueStyle = [
-                'font' => ['bold' => false, 'size' => 12, 'color' => ['rgb' => '000000']],
-                'alignment' => [
-                    'horizontal' => Alignment::HORIZONTAL_RIGHT,
-                    'vertical' => Alignment::VERTICAL_CENTER
-                ]
-            ];
-
-            $sheet->getStyle('B1:B3')->applyFromArray($headerLabelStyle);
-            $sheet->getStyle('C1:C3')->applyFromArray($headerValueStyle);
-            $sheet->getStyle('E1:E3')->applyFromArray($financialLabelStyle);
-            $sheet->getStyle('F1:F3')->applyFromArray($financialValueStyle);
-
-            // Set column widths
-            $sheet->getColumnDimension('B')->setWidth(15);
-            $sheet->getColumnDimension('C')->setWidth(30);
-            $sheet->getColumnDimension('D')->setWidth(5);
-            $sheet->getColumnDimension('E')->setWidth(15);
-            $sheet->getColumnDimension('F')->setWidth(15);
-
-            // Add spacing row
-            $row = 4;
-            $sheet->setCellValue('A' . $row, '');
-            $sheet->getRowDimension($row)->setRowHeight(5);
-
-            // Table Header
-            $tableHeaderRow = $row + 1;
-            $sheet->setCellValue('A' . $tableHeaderRow, 'S. NO');
-            $sheet->setCellValue('B' . $tableHeaderRow, 'DATED');
-            $sheet->setCellValue('C' . $tableHeaderRow, 'DESCRIPTION');
-            $sheet->setCellValue('D' . $tableHeaderRow, 'DEB');
-            $sheet->setCellValue('E' . $tableHeaderRow, 'CRD');
-            $sheet->setCellValue('F' . $tableHeaderRow, 'TOTAL');
-
-            // Style table header
-            $tableHeaderStyle = [
-                'font' => ['bold' => true, 'size' => 11],
-                'fill' => [
-                    'fillType' => Fill::FILL_SOLID,
-                    'startColor' => ['rgb' => 'E5E7EB']
-                ],
-                'alignment' => [
-                    'horizontal' => Alignment::HORIZONTAL_LEFT,
-                    'vertical' => Alignment::VERTICAL_CENTER
-                ],
-                'borders' => [
-                    'allBorders' => [
-                        'borderStyle' => Border::BORDER_THIN,
-                        'color' => ['rgb' => '000000']
-                    ]
-                ]
-            ];
-            $sheet->getStyle('A' . $tableHeaderRow . ':F' . $tableHeaderRow)->applyFromArray($tableHeaderStyle);
-
-            // Set column widths for table
-            $sheet->getColumnDimension('A')->setWidth(20);
-            $sheet->getColumnDimension('B')->setWidth(12);
-            $sheet->getColumnDimension('C')->setWidth(40);
-            $sheet->getColumnDimension('D')->setWidth(12);
-            $sheet->getColumnDimension('E')->setWidth(12);
-            $sheet->getColumnDimension('F')->setWidth(12);
-
-            // Table Data
-            $currentRow = $tableHeaderRow + 1;
-            $runningTotal = 0;
-            $rowIndex = 0;
-
-            foreach ($groupedSummaries as $summary) {
-                $sheet->setCellValue('A' . $currentRow, $summary['head_name']);
-                $sheet->setCellValue('B' . $currentRow, $summary['created_at']->format('Y-m-d'));
-                $sheet->setCellValue('C' . $currentRow, $summary['description']);
-                $sheet->setCellValue('D' . $currentRow, $summary['debit'] > 0 ? number_format($summary['debit'], 0, '.', ',') : '');
-                $sheet->setCellValue('E' . $currentRow, $summary['credit'] > 0 ? number_format($summary['credit'], 0, '.', ',') : '');
-
-                // Calculate running total using the same logic as JavaScript
-                $debit = $summary['debit'] ?? 0;
-                $credit = $summary['credit'] ?? 0;
-
-                if ($rowIndex === 0) {
-                    // First row: total equals debit or credit amount
-                    if ($credit > 0 && $debit > 0) {
-                        $runningTotal = $credit - $debit;
-                    } elseif ($credit > 0) {
-                        $runningTotal = $credit;
-                    } elseif ($debit > 0) {
-                        $runningTotal = -$debit;
-                    } else {
-                        $runningTotal = 0;
-                    }
-                } else {
-                    // Other rows: if previous total > 0, subtract debit and add credit
-                    if ($runningTotal > 0) {
-                        $runningTotal = $runningTotal - $debit + $credit;
-                    } else {
-                        // If previous total <= 0, still apply the same logic for consistency
-                        $runningTotal = $runningTotal - $debit + $credit;
-                    }
-                }
-
-                $sheet->setCellValue('F' . $currentRow, number_format($runningTotal, 0, '.', ','));
-
-                // Style table row
-                $tableRowStyle = [
-                    'alignment' => [
-                        'horizontal' => Alignment::HORIZONTAL_LEFT,
-                        'vertical' => Alignment::VERTICAL_CENTER
-                    ],
-                    'borders' => [
-                        'allBorders' => [
-                            'borderStyle' => Border::BORDER_THIN,
-                            'color' => ['rgb' => '000000']
-                        ]
-                    ]
-                ];
-                $sheet->getStyle('A' . $currentRow . ':F' . $currentRow)->applyFromArray($tableRowStyle);
-
-                // Right align numeric columns
-                $sheet->getStyle('D' . $currentRow . ':F' . $currentRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
-
-                // Set row height for table rows
-                $sheet->getRowDimension($currentRow)->setRowHeight(25);
-
-                $currentRow++;
-                $rowIndex++;
-            }
-
-            // Add 3-4 blank rows after the table
-            $currentRow += 3;
-
-            // Summary Section
-            $summaryHeaderRow = $currentRow;
-            $sheet->mergeCells('A' . $summaryHeaderRow . ':F' . $summaryHeaderRow);
-            $sheet->setCellValue('A' . $summaryHeaderRow, 'Summary');
-
-            // Style summary header
-            $summaryHeaderStyle = [
-                'font' => ['bold' => true, 'size' => 14],
-                'alignment' => [
-                    'horizontal' => Alignment::HORIZONTAL_CENTER,
-                    'vertical' => Alignment::VERTICAL_CENTER
-                ],
-                'fill' => [
-                    'fillType' => Fill::FILL_SOLID,
-                    'startColor' => ['rgb' => 'E5E7EB']
-                ],
-                'borders' => [
-                    'allBorders' => [
-                        'borderStyle' => Border::BORDER_THIN,
-                        'color' => ['rgb' => '000000']
-                    ]
-                ]
-            ];
-            $sheet->getStyle('A' . $summaryHeaderRow . ':F' . $summaryHeaderRow)->applyFromArray($summaryHeaderStyle);
-
-            // Get all CD heads with their items
-            $cdHeads = CdHead::where('form_id', $form->id)
-                ->with('cdItems')
-                ->orderBy('created_at', 'asc')
-                ->get();
-
-            // Calculate sum of debit amounts for each head from summaries
+            // Get all heads that have debit summaries
             $headAmounts = [];
-            $totalDebitAmount = 0;
             foreach ($cdSummaries as $summary) {
                 // Only include debit type
                 if ($summary->cd_type === 'debit') {
@@ -919,12 +701,16 @@ class FormController extends Controller
                         $headAmounts[$headId] = 0;
                     }
                     $headAmounts[$headId] += $summary->amount;
-                    $totalDebitAmount += $summary->amount;
                 }
             }
 
-            // Add summary data rows - only for heads with debit amounts
-            $currentRow = $summaryHeaderRow + 1;
+            // Get all CD heads
+            $cdHeads = CdHead::where('form_id', $form->id)
+                ->orderBy('created_at', 'asc')
+                ->get();
+
+            // Create a sheet for each head that has debit summaries
+            $sheetIndex = 2; // Start after Summary (0) and Roznamcha (1)
             foreach ($cdHeads as $head) {
                 // Skip heads with no debit amount
                 $headAmount = isset($headAmounts[$head->id]) ? $headAmounts[$head->id] : 0;
@@ -932,52 +718,28 @@ class FormController extends Controller
                     continue;
                 }
 
-                // Head name in column B
-                $sheet->setCellValue('B' . $currentRow, $head->name);
+                // Filter grouped summaries for this head only
+                $headGroupedSummaries = array_filter($groupedSummaries, function ($summary) use ($head) {
+                    return isset($summary['head_id']) && $summary['head_id'] == $head->id;
+                });
+                // Re-index array to start from 0
+                $headGroupedSummaries = array_values($headGroupedSummaries);
 
-                // Items (comma separated) in column C
-                $items = $head->cdItems->pluck('name')->implode(', ');
-                $sheet->setCellValue('C' . $currentRow, $items);
+                // Sanitize head name for sheet name (Excel sheet names have limitations)
+                $sheetName = $this->sanitizeSheetName($head->name);
 
-                // Sum of debit amount for this head in column D
-                $sheet->setCellValue('D' . $currentRow, number_format($headAmount, 0, '.', ','));
-                $sheet->getRowDimension($currentRow)->setRowHeight(25);
+                // Create sheet for this head
+                $headSheet = new \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet($spreadsheet, $sheetName);
+                $spreadsheet->addSheet($headSheet, $sheetIndex);
 
-                // Style summary row
-                $summaryRowStyle = [
-                    'alignment' => [
-                        'horizontal' => Alignment::HORIZONTAL_LEFT,
-                        'vertical' => Alignment::VERTICAL_CENTER
-                    ],
-                ];
-                $sheet->getStyle('B' . $currentRow . ':D' . $currentRow)->applyFromArray($summaryRowStyle);
+                // Add header to head sheet
+                $this->addCdExportHeader($headSheet, $form, $totalIncome, $totalExpense, $inHand);
 
-                // Right align column D (amount)
-                $sheet->getStyle('D' . $currentRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+                // Add table to head sheet (filtered for this head)
+                $this->addRoznamchaTable($headSheet, $headGroupedSummaries);
 
-                $currentRow++;
+                $sheetIndex++;
             }
-
-            // Add total row after all heads
-            $sheet->setCellValue('B' . $currentRow, 'Total');
-            $sheet->setCellValue('C' . $currentRow, '');
-            $sheet->setCellValue('D' . $currentRow, number_format($totalDebitAmount, 0, '.', ','));
-
-            // Style total row
-            $totalRowStyle = [
-                'font' => ['bold' => true],
-                'alignment' => [
-                    'horizontal' => Alignment::HORIZONTAL_LEFT,
-                    'vertical' => Alignment::VERTICAL_CENTER
-                ]
-            ];
-            $sheet->getStyle('B' . $currentRow . ':D' . $currentRow)->applyFromArray($totalRowStyle);
-
-            // Right align column D (total amount)
-            $sheet->getStyle('D' . $currentRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
-
-            // Set row height for total row
-            $sheet->getRowDimension($currentRow)->setRowHeight(25);
 
             // Create writer
             $writer = new Xlsx($spreadsheet);
@@ -1002,6 +764,366 @@ class FormController extends Controller
         } catch (\Exception $e) {
             return redirect()->route('forms.cd', $form->id)
                 ->with('error', 'Failed to export CD summary: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Add header section to CD export sheet.
+     */
+    private function addCdExportHeader($sheet, $form, $totalIncome, $totalExpense, $inHand): int
+    {
+        // Find logo path
+        $logoPath = $this->formService->findLogoPath();
+
+        // Add logo if available
+        $row = 1;
+        if ($logoPath && file_exists($logoPath)) {
+            $sheet->getColumnDimension('A')->setWidth(11.5);
+            $sheet->mergeCells('A1:A3');
+            $sheet->getRowDimension(1)->setRowHeight(20);
+            $sheet->getRowDimension(2)->setRowHeight(20);
+            $sheet->getRowDimension(3)->setRowHeight(20);
+
+            $sheet->getStyle('A1:A3')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle('A1:A3')->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
+
+            $columnWidthPixels = 11.5 * 7;
+            $imageHeight = 70;
+            $imageWidth = $imageHeight;
+            $offsetX = ($columnWidthPixels - $imageWidth) / 2;
+            $offsetY = (60 - $imageHeight) / 2;
+
+            $drawing = new Drawing();
+            $drawing->setName('Monogram');
+            $drawing->setDescription('Monogram');
+            $drawing->setPath($logoPath);
+            $drawing->setHeight($imageHeight);
+            $drawing->setWidth($imageWidth);
+            $drawing->setCoordinates('A1');
+            $drawing->setOffsetX(max(0, $offsetX));
+            $drawing->setOffsetY(max(0, $offsetY));
+            $drawing->setWorksheet($sheet);
+        } else {
+            $sheet->getColumnDimension('A')->setWidth(11.5);
+        }
+
+        // Header Section
+        $row = 1;
+        // Row 1: T. INCOME (left) and CLIENT (right)
+        $sheet->setCellValue('F' . $row, 'CLIENT');
+        $sheet->setCellValue('G' . $row, strtoupper($form->client_name));
+        $sheet->setCellValue('B' . $row, 'T. INCOME');
+        $sheet->setCellValue('C' . $row, number_format($totalIncome, 0, '.', ','));
+        $row++;
+
+        // Row 2: T.EXPENSE (left) and LOCATION (right)
+        $sheet->setCellValue('F' . $row, 'LOCATION');
+        $sheet->setCellValue('G' . $row, strtoupper($form->project_name));
+        $sheet->setCellValue('B' . $row, 'T.EXPENSE');
+        $sheet->setCellValue('C' . $row, number_format($totalExpense, 0, '.', ','));
+        $row++;
+
+        // Row 3: INHAND (left) and STARTING (right)
+        $sheet->setCellValue('F' . $row, 'STARTING');
+        $startingDate = $form->created_at ? $form->created_at->format('d.m.Y') : date('d.m.Y');
+        $sheet->setCellValue('B' . $row, 'INHAND');
+        $sheet->setCellValue('C' . $row, number_format($inHand, 0, '.', ','));
+        $sheet->setCellValue('G' . $row, $startingDate);
+
+        // Style header rows
+        $headerLabelStyle = [
+            'font' => ['bold' => true, 'size' => 12, 'color' => ['rgb' => '000000']],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_LEFT,
+                'vertical' => Alignment::VERTICAL_CENTER
+            ]
+        ];
+        $headerValueStyle = [
+            'font' => ['bold' => true, 'size' => 12, 'color' => ['rgb' => '000000']],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_LEFT,
+                'vertical' => Alignment::VERTICAL_CENTER
+            ]
+        ];
+        $financialLabelStyle = [
+            'font' => ['bold' => true, 'size' => 12, 'color' => ['rgb' => '000000']],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_LEFT,
+                'vertical' => Alignment::VERTICAL_CENTER
+            ]
+        ];
+        $financialValueStyle = [
+            'font' => ['bold' => false, 'size' => 12, 'color' => ['rgb' => '000000']],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_RIGHT,
+                'vertical' => Alignment::VERTICAL_CENTER
+            ]
+        ];
+
+        // Style left side financial summary (T. INCOME, T.EXPENSE, INHAND)
+        $sheet->getStyle('B1:B3')->applyFromArray($financialLabelStyle);
+        $sheet->getStyle('C1:C3')->applyFromArray($financialValueStyle);
+
+        // Style right side header (CLIENT, LOCATION, STARTING)
+        $sheet->getStyle('F1:F3')->applyFromArray($headerLabelStyle);
+        $sheet->getStyle('G1:G3')->applyFromArray($headerValueStyle);
+
+        // Set column widths
+        $sheet->getColumnDimension('B')->setWidth(15);
+        $sheet->getColumnDimension('C')->setWidth(30);
+        $sheet->getColumnDimension('D')->setWidth(5);
+        $sheet->getColumnDimension('E')->setWidth(5);
+        $sheet->getColumnDimension('F')->setWidth(15);
+        $sheet->getColumnDimension('G')->setWidth(15);
+
+        // Add spacing row
+        $row = 4;
+        $sheet->setCellValue('A' . $row, '');
+        $sheet->getRowDimension($row)->setRowHeight(5);
+
+        return $row;
+    }
+
+    /**
+     * Add Summary Section to Summary sheet.
+     */
+    private function addSummarySection($sheet, $form, $cdSummaries): void
+    {
+        $row = 5; // After header (3 rows) and spacing (row 4)
+
+        // Summary Section
+        $summaryHeaderRow = $row;
+        $sheet->mergeCells('A' . $summaryHeaderRow . ':G' . $summaryHeaderRow);
+        $sheet->setCellValue('A' . $summaryHeaderRow, 'Summary');
+
+        // Style summary header
+        $summaryHeaderStyle = [
+            'font' => ['bold' => true, 'size' => 14],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                'vertical' => Alignment::VERTICAL_CENTER
+            ],
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['rgb' => 'E5E7EB']
+            ],
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => Border::BORDER_THIN,
+                    'color' => ['rgb' => '000000']
+                ]
+            ]
+        ];
+        $sheet->getStyle('A' . $summaryHeaderRow . ':G' . $summaryHeaderRow)->applyFromArray($summaryHeaderStyle);
+
+        // Get all CD heads
+        $cdHeads = CdHead::where('form_id', $form->id)
+            ->orderBy('created_at', 'asc')
+            ->get();
+
+        // Calculate sum of debit amounts for each head from summaries
+        $headAmounts = [];
+        $totalDebitAmount = 0;
+        foreach ($cdSummaries as $summary) {
+            // Only include debit type
+            if ($summary->cd_type === 'debit') {
+                $headId = $summary->head_id;
+                if (!isset($headAmounts[$headId])) {
+                    $headAmounts[$headId] = 0;
+                }
+                $headAmounts[$headId] += $summary->amount;
+                $totalDebitAmount += $summary->amount;
+            }
+        }
+
+        // Add summary data rows - only for heads with debit amounts
+        $currentRow = $summaryHeaderRow + 1;
+        foreach ($cdHeads as $head) {
+            // Skip heads with no debit amount
+            $headAmount = isset($headAmounts[$head->id]) ? $headAmounts[$head->id] : 0;
+            if ($headAmount == 0) {
+                continue;
+            }
+
+            // Head name in column B
+            $sheet->setCellValue('B' . $currentRow, $head->name);
+
+            // Sum of debit amount for this head in column C
+            $sheet->setCellValue('C' . $currentRow, number_format($headAmount, 0, '.', ','));
+            $sheet->getRowDimension($currentRow)->setRowHeight(25);
+
+            // Style summary row
+            $summaryRowStyle = [
+                'alignment' => [
+                    'horizontal' => Alignment::HORIZONTAL_LEFT,
+                    'vertical' => Alignment::VERTICAL_CENTER
+                ],
+            ];
+            $sheet->getStyle('B' . $currentRow . ':C' . $currentRow)->applyFromArray($summaryRowStyle);
+
+            // Right align column C (amount)
+            $sheet->getStyle('C' . $currentRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+
+            $currentRow++;
+        }
+
+        // Add total row after all heads
+        $sheet->setCellValue('B' . $currentRow, 'Total');
+        $sheet->setCellValue('C' . $currentRow, number_format($totalDebitAmount, 0, '.', ','));
+
+        // Style total row
+        $totalRowStyle = [
+            'font' => ['bold' => true],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_LEFT,
+                'vertical' => Alignment::VERTICAL_CENTER
+            ]
+        ];
+        $sheet->getStyle('B' . $currentRow . ':C' . $currentRow)->applyFromArray($totalRowStyle);
+
+        // Right align column C (total amount)
+        $sheet->getStyle('C' . $currentRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+
+        // Set row height for total row
+        $sheet->getRowDimension($currentRow)->setRowHeight(25);
+    }
+
+    /**
+     * Sanitize sheet name for Excel compatibility.
+     * Excel sheet names have limitations: max 31 characters, cannot contain: \ / ? * [ ]
+     */
+    private function sanitizeSheetName($name): string
+    {
+        // Remove invalid characters
+        $name = preg_replace('/[\\\\\/\?\*\[\]]/', '', $name);
+
+        // Truncate to 31 characters (Excel limit)
+        if (mb_strlen($name) > 31) {
+            $name = mb_substr($name, 0, 31);
+        }
+
+        // If empty after sanitization, use default name
+        if (empty($name)) {
+            $name = 'Sheet';
+        }
+
+        return $name;
+    }
+
+    /**
+     * Add Roznamcha table to Roznamcha sheet.
+     */
+    private function addRoznamchaTable($sheet, $groupedSummaries): void
+    {
+        $row = 5; // After header (3 rows) and spacing (row 4)
+
+        // Table Header
+        $tableHeaderRow = $row;
+        $sheet->setCellValue('A' . $tableHeaderRow, 'S. No');
+        $sheet->setCellValue('B' . $tableHeaderRow, 'Account');
+        $sheet->setCellValue('C' . $tableHeaderRow, 'DATED');
+        $sheet->setCellValue('D' . $tableHeaderRow, 'DESCRIPTION');
+        $sheet->setCellValue('E' . $tableHeaderRow, 'DEB');
+        $sheet->setCellValue('F' . $tableHeaderRow, 'CRD');
+        $sheet->setCellValue('G' . $tableHeaderRow, 'TOTAL');
+
+        // Style table header
+        $tableHeaderStyle = [
+            'font' => ['bold' => true, 'size' => 11],
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['rgb' => 'E5E7EB']
+            ],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_LEFT,
+                'vertical' => Alignment::VERTICAL_CENTER
+            ],
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => Border::BORDER_THIN,
+                    'color' => ['rgb' => '000000']
+                ]
+            ]
+        ];
+        $sheet->getStyle('A' . $tableHeaderRow . ':G' . $tableHeaderRow)->applyFromArray($tableHeaderStyle);
+
+        // Set column widths for table
+        $sheet->getColumnDimension('A')->setWidth(10);
+        $sheet->getColumnDimension('B')->setWidth(20);
+        $sheet->getColumnDimension('C')->setWidth(12);
+        $sheet->getColumnDimension('D')->setWidth(40);
+        $sheet->getColumnDimension('E')->setWidth(12);
+        $sheet->getColumnDimension('F')->setWidth(12);
+        $sheet->getColumnDimension('G')->setWidth(12);
+
+        // Table Data
+        $currentRow = $tableHeaderRow + 1;
+        $runningTotal = 0;
+        $rowIndex = 0;
+        $serialNumber = 1;
+
+        foreach ($groupedSummaries as $summary) {
+            $sheet->setCellValue('A' . $currentRow, $serialNumber);
+            $sheet->setCellValue('B' . $currentRow, $summary['head_name']);
+            $sheet->setCellValue('C' . $currentRow, $summary['created_at']->format('Y-m-d'));
+            $sheet->setCellValue('D' . $currentRow, $summary['description']);
+            $sheet->setCellValue('E' . $currentRow, $summary['debit'] > 0 ? number_format($summary['debit'], 0, '.', ',') : '');
+            $sheet->setCellValue('F' . $currentRow, $summary['credit'] > 0 ? number_format($summary['credit'], 0, '.', ',') : '');
+
+            // Calculate running total using the same logic as JavaScript
+            $debit = $summary['debit'] ?? 0;
+            $credit = $summary['credit'] ?? 0;
+
+            if ($rowIndex === 0) {
+                // First row: total equals debit or credit amount
+                if ($credit > 0 && $debit > 0) {
+                    $runningTotal = $credit - $debit;
+                } elseif ($credit > 0) {
+                    $runningTotal = $credit;
+                } elseif ($debit > 0) {
+                    $runningTotal = -$debit;
+                } else {
+                    $runningTotal = 0;
+                }
+            } else {
+                // Other rows: if previous total > 0, subtract debit and add credit
+                if ($runningTotal > 0) {
+                    $runningTotal = $runningTotal - $debit + $credit;
+                } else {
+                    // If previous total <= 0, still apply the same logic for consistency
+                    $runningTotal = $runningTotal - $debit + $credit;
+                }
+            }
+
+            $sheet->setCellValue('G' . $currentRow, number_format($runningTotal, 0, '.', ','));
+
+            // Style table row
+            $tableRowStyle = [
+                'alignment' => [
+                    'horizontal' => Alignment::HORIZONTAL_LEFT,
+                    'vertical' => Alignment::VERTICAL_CENTER
+                ],
+                'borders' => [
+                    'allBorders' => [
+                        'borderStyle' => Border::BORDER_THIN,
+                        'color' => ['rgb' => '000000']
+                    ]
+                ]
+            ];
+            $sheet->getStyle('A' . $currentRow . ':G' . $currentRow)->applyFromArray($tableRowStyle);
+
+            // Center align S. No column
+            $sheet->getStyle('A' . $currentRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+            // Right align numeric columns
+            $sheet->getStyle('E' . $currentRow . ':G' . $currentRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+
+            // Set row height for table rows
+            $sheet->getRowDimension($currentRow)->setRowHeight(25);
+
+            $currentRow++;
+            $rowIndex++;
+            $serialNumber++;
         }
     }
 
@@ -1090,45 +1212,6 @@ class FormController extends Controller
             ], 500);
         }
     }
-
-    /**
-     * Store CD items for a head.
-     */
-    public function storeCdItems(Request $request, CdHead $head): JsonResponse
-    {
-        $validated = $request->validate([
-            'items' => 'required|array|min:1',
-            'items.*' => 'required|string|max:255',
-        ]);
-
-        try {
-            $createdItems = [];
-            foreach ($validated['items'] as $itemName) {
-                $item = CdItem::create([
-                    'user_id' => Auth::id(),
-                    'form_id' => $head->form_id,
-                    'head_id' => $head->id,
-                    'name' => $itemName,
-                ]);
-                $createdItems[] = [
-                    'id' => $item->id,
-                    'name' => $item->name,
-                ];
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Items created successfully.',
-                'items' => $createdItems,
-            ], 201);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create items: ' . $e->getMessage(),
-            ], 500);
-        }
-    }
-
 
     /**
      * Get CD heads for autocomplete.
@@ -1238,7 +1321,6 @@ class FormController extends Controller
     {
         try {
             $cdHeads = CdHead::where('form_id', $form->id)
-                ->with('cdItems')
                 ->orderBy('created_at', 'desc')
                 ->get();
 
@@ -1247,12 +1329,6 @@ class FormController extends Controller
                     'id' => $head->id,
                     'name' => $head->name,
                     'created_at' => $head->created_at->format('M d, Y'),
-                    'items' => $head->cdItems->map(function ($item) {
-                        return [
-                            'id' => $item->id,
-                            'name' => $item->name,
-                        ];
-                    }),
                 ];
             });
 
