@@ -810,25 +810,25 @@ class FormController extends Controller
         // Header Section
         $row = 1;
         // Row 1: T. INCOME (left) and CLIENT (right)
-        $sheet->setCellValue('F' . $row, 'CLIENT');
-        $sheet->setCellValue('G' . $row, strtoupper($form->client_name));
-        $sheet->setCellValue('B' . $row, 'T. INCOME');
-        $sheet->setCellValue('C' . $row, number_format($totalIncome, 0, '.', ','));
+        $sheet->setCellValue('B' . $row, 'CLIENT');
+        $sheet->setCellValue('C' . $row, strtoupper($form->client_name));
+        $sheet->setCellValue('F' . $row, 'T. INCOME');
+        $sheet->setCellValue('G' . $row, number_format($totalIncome, 0, '.', ','));
         $row++;
 
         // Row 2: T.EXPENSE (left) and LOCATION (right)
-        $sheet->setCellValue('F' . $row, 'LOCATION');
-        $sheet->setCellValue('G' . $row, strtoupper($form->project_name));
-        $sheet->setCellValue('B' . $row, 'T.EXPENSE');
-        $sheet->setCellValue('C' . $row, number_format($totalExpense, 0, '.', ','));
+        $sheet->setCellValue('B' . $row, 'LOCATION');
+        $sheet->setCellValue('C' . $row, strtoupper($form->project_name));
+        $sheet->setCellValue('F' . $row, 'T.EXPENSE');
+        $sheet->setCellValue('G' . $row, number_format($totalExpense, 0, '.', ','));
         $row++;
 
         // Row 3: INHAND (left) and STARTING (right)
-        $sheet->setCellValue('F' . $row, 'STARTING');
+        $sheet->setCellValue('B' . $row, 'STARTING');
         $startingDate = $form->created_at ? $form->created_at->format('d.m.Y') : date('d.m.Y');
-        $sheet->setCellValue('B' . $row, 'INHAND');
-        $sheet->setCellValue('C' . $row, number_format($inHand, 0, '.', ','));
-        $sheet->setCellValue('G' . $row, $startingDate);
+        $sheet->setCellValue('F' . $row, 'INHAND');
+        $sheet->setCellValue('G' . $row, number_format($inHand, 0, '.', ','));
+        $sheet->setCellValue('B' . $row, $startingDate);
 
         // Style header rows
         $headerLabelStyle = [
@@ -891,31 +891,6 @@ class FormController extends Controller
     {
         $row = 5; // After header (3 rows) and spacing (row 4)
 
-        // Summary Section
-        $summaryHeaderRow = $row;
-        $sheet->mergeCells('A' . $summaryHeaderRow . ':G' . $summaryHeaderRow);
-        $sheet->setCellValue('A' . $summaryHeaderRow, 'Summary');
-
-        // Style summary header
-        $summaryHeaderStyle = [
-            'font' => ['bold' => true, 'size' => 14],
-            'alignment' => [
-                'horizontal' => Alignment::HORIZONTAL_CENTER,
-                'vertical' => Alignment::VERTICAL_CENTER
-            ],
-            'fill' => [
-                'fillType' => Fill::FILL_SOLID,
-                'startColor' => ['rgb' => 'E5E7EB']
-            ],
-            'borders' => [
-                'allBorders' => [
-                    'borderStyle' => Border::BORDER_THIN,
-                    'color' => ['rgb' => '000000']
-                ]
-            ]
-        ];
-        $sheet->getStyle('A' . $summaryHeaderRow . ':G' . $summaryHeaderRow)->applyFromArray($summaryHeaderStyle);
-
         // Get all CD heads
         $cdHeads = CdHead::where('form_id', $form->id)
             ->orderBy('created_at', 'asc')
@@ -936,8 +911,39 @@ class FormController extends Controller
             }
         }
 
+        // Add table header row (starting directly at row 5, no blank row above)
+        $tableHeaderRow = $row;
+        $sheet->setCellValue('A' . $tableHeaderRow, 'S.No');
+        $sheet->setCellValue('B' . $tableHeaderRow, 'Account');
+        $sheet->setCellValue('C' . $tableHeaderRow, 'Total');
+
+        // Style table header (same as Roznamcha)
+        $tableHeaderStyle = [
+            'font' => ['bold' => true, 'size' => 11],
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['rgb' => 'E5E7EB']
+            ],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_LEFT,
+                'vertical' => Alignment::VERTICAL_CENTER
+            ],
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => Border::BORDER_THIN,
+                    'color' => ['rgb' => '000000']
+                ]
+            ]
+        ];
+        $sheet->getStyle('A' . $tableHeaderRow . ':C' . $tableHeaderRow)->applyFromArray($tableHeaderStyle);
+        $sheet->getRowDimension($tableHeaderRow)->setRowHeight(25);
+
+        // Right align column C (Total) in header
+        $sheet->getStyle('C' . $tableHeaderRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+
         // Add summary data rows - only for heads with debit amounts
-        $currentRow = $summaryHeaderRow + 1;
+        $currentRow = $tableHeaderRow + 1;
+        $serialNumber = 1;
         foreach ($cdHeads as $head) {
             // Skip heads with no debit amount
             $headAmount = isset($headAmounts[$head->id]) ? $headAmounts[$head->id] : 0;
@@ -945,41 +951,63 @@ class FormController extends Controller
                 continue;
             }
 
+            // Serial number in column A
+            $sheet->setCellValue('A' . $currentRow, $serialNumber);
+
             // Head name in column B
             $sheet->setCellValue('B' . $currentRow, $head->name);
 
             // Sum of debit amount for this head in column C
             $sheet->setCellValue('C' . $currentRow, number_format($headAmount, 0, '.', ','));
-            $sheet->getRowDimension($currentRow)->setRowHeight(25);
 
-            // Style summary row
-            $summaryRowStyle = [
+            // Style table row (same as Roznamcha)
+            $tableRowStyle = [
                 'alignment' => [
                     'horizontal' => Alignment::HORIZONTAL_LEFT,
                     'vertical' => Alignment::VERTICAL_CENTER
                 ],
+                'borders' => [
+                    'allBorders' => [
+                        'borderStyle' => Border::BORDER_THIN,
+                        'color' => ['rgb' => '000000']
+                    ]
+                ]
             ];
-            $sheet->getStyle('B' . $currentRow . ':C' . $currentRow)->applyFromArray($summaryRowStyle);
+            $sheet->getStyle('A' . $currentRow . ':C' . $currentRow)->applyFromArray($tableRowStyle);
+
+            // Center align S. No column
+            $sheet->getStyle('A' . $currentRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
             // Right align column C (amount)
             $sheet->getStyle('C' . $currentRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
 
+            // Set row height for table rows
+            $sheet->getRowDimension($currentRow)->setRowHeight(25);
+
+            $serialNumber++;
             $currentRow++;
         }
 
         // Add total row after all heads
+        $sheet->setCellValue('A' . $currentRow, '');
         $sheet->setCellValue('B' . $currentRow, 'Total');
         $sheet->setCellValue('C' . $currentRow, number_format($totalDebitAmount, 0, '.', ','));
 
-        // Style total row
+        // Style total row (same as table rows with borders)
         $totalRowStyle = [
             'font' => ['bold' => true],
             'alignment' => [
                 'horizontal' => Alignment::HORIZONTAL_LEFT,
                 'vertical' => Alignment::VERTICAL_CENTER
+            ],
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => Border::BORDER_THIN,
+                    'color' => ['rgb' => '000000']
+                ]
             ]
         ];
-        $sheet->getStyle('B' . $currentRow . ':C' . $currentRow)->applyFromArray($totalRowStyle);
+        $sheet->getStyle('A' . $currentRow . ':C' . $currentRow)->applyFromArray($totalRowStyle);
 
         // Right align column C (total amount)
         $sheet->getStyle('C' . $currentRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
