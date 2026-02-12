@@ -826,9 +826,9 @@ class FormController extends Controller
         // Row 3: INHAND (left) and STARTING (right)
         $sheet->setCellValue('B' . $row, 'STARTING');
         $startingDate = $form->created_at ? $form->created_at->format('d.m.Y') : date('d.m.Y');
+        $sheet->setCellValue('C' . $row, $startingDate);
         $sheet->setCellValue('F' . $row, 'INHAND');
         $sheet->setCellValue('G' . $row, number_format($inHand, 0, '.', ','));
-        $sheet->setCellValue('B' . $row, $startingDate);
 
         // Style header rows
         $headerLabelStyle = [
@@ -855,7 +855,7 @@ class FormController extends Controller
         $financialValueStyle = [
             'font' => ['bold' => false, 'size' => 12, 'color' => ['rgb' => '000000']],
             'alignment' => [
-                'horizontal' => Alignment::HORIZONTAL_RIGHT,
+                'horizontal' => Alignment::HORIZONTAL_LEFT,
                 'vertical' => Alignment::VERTICAL_CENTER
             ]
         ];
@@ -913,7 +913,7 @@ class FormController extends Controller
 
         // Add table header row (starting directly at row 5, no blank row above)
         $tableHeaderRow = $row;
-        $sheet->setCellValue('A' . $tableHeaderRow, 'S.No');
+        $sheet->setCellValue('A' . $tableHeaderRow, 'S. No');
         $sheet->setCellValue('B' . $tableHeaderRow, 'Account');
         $sheet->setCellValue('C' . $tableHeaderRow, 'Total');
 
@@ -936,7 +936,6 @@ class FormController extends Controller
             ]
         ];
         $sheet->getStyle('A' . $tableHeaderRow . ':C' . $tableHeaderRow)->applyFromArray($tableHeaderStyle);
-        $sheet->getRowDimension($tableHeaderRow)->setRowHeight(25);
 
         // Right align column C (Total) in header
         $sheet->getStyle('C' . $tableHeaderRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
