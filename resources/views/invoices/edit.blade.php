@@ -501,8 +501,9 @@
                             @if ($invoiceRates->count() > 0)
                                 @foreach ($invoiceRates as $rate)
                                     <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 rate-item">
-                                        <div class="flex items-center justify-between">
-                                            <p class="text-sm font-medium text-gray-900 dark:text-white flex-1">
+                                        <div class="flex items-center justify-between gap-2">
+                                            <span class="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full bg-gray-200 dark:bg-gray-600 text-xs font-medium text-gray-700 dark:text-gray-300">{{ $loop->iteration }}</span>
+                                            <p class="text-sm font-medium text-gray-900 dark:text-white flex-1 min-w-0">
                                                 {{ $rate->name }}
                                             </p>
                                             <div class="flex gap-1">
@@ -1243,7 +1244,7 @@
                         success: function(data) {
                             const suggestions = data.map(function(item) {
                                 return {
-                                    label: item.label,
+                                    label: item.serial_number + '. ' + item.label,
                                     value: item.value,
                                     id: item.id,
                                     unit: item.unit,

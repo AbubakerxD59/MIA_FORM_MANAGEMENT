@@ -102,8 +102,8 @@ class InvoiceController extends Controller
             $invoiceItems = InvoiceItem::all();
         }
 
-        // Get all invoice rates
-        $invoiceRates = InvoiceRate::all();
+        // Get all invoice rates (ascending order by name)
+        $invoiceRates = InvoiceRate::orderBy('name', 'asc')->get();
 
         return view('invoices.edit', compact('invoice', 'invoiceItems', 'invoiceRates'));
     }

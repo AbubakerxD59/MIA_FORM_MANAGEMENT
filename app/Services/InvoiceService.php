@@ -209,9 +209,10 @@ class InvoiceService
             ->limit(20)
             ->get();
 
-        return $rates->map(function ($rate) {
+        return $rates->map(function ($rate, $index) {
             return [
                 'id' => $rate->id,
+                'serial_number' => $index + 1,
                 'label' => $rate->name,
                 'value' => $rate->name,
                 'unit' => $rate->unit ?? '',

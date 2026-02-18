@@ -22,7 +22,9 @@ if (! function_exists('excel_footer_text')) {
      */
     function excel_footer_text(): string
     {
-        $footerText = "&C&12&B MIA CONSTRUCTION\n";
+        // $footerText = "&CMIA CONSTRUCTION\n";
+        $footerText = "&C&12&BMIA CONSTRUCTION\n";
+        $footerText .= "\n";
         $footerText .= "\n&C&10 Consultant - Designer - Estimator - Contractor\n";
         $footerText .= "\n&C&10 59 - MAIN VIP EXT AECHS RAWALPINDI\n";
         $footerText .= "&C&10 - 03218600259 -";
