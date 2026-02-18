@@ -503,7 +503,7 @@ class FormController extends Controller
     public function cd(Form $form): View
     {
         $cdHeads = CdHead::where('form_id', $form->id)
-            ->orderBy('created_at', 'desc')
+            ->orderBy('name', 'asc')
             ->get();
 
         $cdLedger = CdLedger::where('form_id', $form->id)->first();
@@ -1355,7 +1355,7 @@ class FormController extends Controller
     {
         try {
             $cdHeads = CdHead::where('form_id', $form->id)
-                ->orderBy('created_at', 'desc')
+                ->orderBy('name', 'asc')
                 ->get();
 
             $headsData = $cdHeads->map(function ($head) {
