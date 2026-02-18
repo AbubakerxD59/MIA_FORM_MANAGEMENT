@@ -327,13 +327,9 @@
                                                 <select id="fields_unit" name="fields_unit"
                                                     class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
                                                     <option value="">Select Unit</option>
-                                                    <option value="CFT">CFT</option>
-                                                    <option value="SFT">SFT</option>
-                                                    <option value="RFT">RFT</option>
-                                                    <option value="CUM">CUM</option>
-                                                    <option value="SQM">SQM</option>
-                                                    <option value="RM">RM</option>
-                                                    <option value="KG">KG</option>
+                                                    @foreach(unit_types() as $unit)
+                                                    <option value="{{ $unit }}">{{ $unit }}</option>
+                                                    @endforeach
                                                 </select>
                                             </div>
                                             <div>

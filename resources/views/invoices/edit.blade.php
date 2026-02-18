@@ -407,16 +407,9 @@
                                     <select id="newRateUnit"
                                         class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white">
                                         <option value="">Select Unit</option>
-                                        <option value="CFT">CFT</option>
-                                        <option value="SFT">SFT</option>
-                                        <option value="RFT">RFT</option>
-                                        <option value="CUM">CUM</option>
-                                        <option value="SQM">SQM</option>
-                                        <option value="RM">RM</option>
-                                        <option value="KG">KG</option>
-                                        <option value="JOB">JOB</option>
-                                        <option value="NOS">NOS</option>
-                                        <option value="BAG">BAG</option>
+                                        @foreach(unit_types() as $unit)
+                                        <option value="{{ $unit }}">{{ $unit }}</option>
+                                        @endforeach
                                     </select>
                                 </div>
                                 <div>
@@ -569,6 +562,7 @@
     </div>
 
     <script>
+        window.unitTypes = @json(unit_types());
         let currentItemId = null;
 
         $(document).ready(function() {
@@ -1081,16 +1075,7 @@
                         </td>
                         <td class="text-center">
                             <select class="unit-input w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-center text-sm">
-                                <option value="CFT">CFT</option>
-                                <option value="SFT" selected>SFT</option>
-                                <option value="RFT">RFT</option>
-                                <option value="CUM">CUM</option>
-                                <option value="SQM">SQM</option>
-                                <option value="RM">RM</option>
-                                <option value="KG">KG</option>
-                                <option value="JOB">JOB</option>
-                                <option value="NOS">NOS</option>
-                                <option value="BAG">BAG</option>
+                                ${window.unitTypes.map(u => `<option value="${u}" ${u === 'SFT' ? 'selected' : ''}>${u}</option>`).join('')}
                             </select>
                         </td>
                         <td class="text-center">
@@ -1153,16 +1138,7 @@
                                 </td>
                                 <td class="text-center">
                                     <select class="unit-input w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-center text-sm">
-                                        <option value="CFT" ${row && row.unit === 'CFT' ? 'selected' : ''}>CFT</option>
-                                        <option value="SFT" ${(!row || !row.unit || row.unit === 'SFT') ? 'selected' : ''}>SFT</option>
-                                        <option value="RFT" ${row && row.unit === 'RFT' ? 'selected' : ''}>RFT</option>
-                                        <option value="CUM" ${row && row.unit === 'CUM' ? 'selected' : ''}>CUM</option>
-                                        <option value="SQM" ${row && row.unit === 'SQM' ? 'selected' : ''}>SQM</option>
-                                        <option value="RM" ${row && row.unit === 'RM' ? 'selected' : ''}>RM</option>
-                                        <option value="KG" ${row && row.unit === 'KG' ? 'selected' : ''}>KG</option>
-                                        <option value="JOB" ${row && row.unit === 'JOB' ? 'selected' : ''}>JOB</option>
-                                        <option value="NOS" ${row && row.unit === 'NOS' ? 'selected' : ''}>NOS</option>
-                                        <option value="BAG" ${row && row.unit === 'BAG' ? 'selected' : ''}>BAG</option>
+                                        ${window.unitTypes.map(u => { const sel = (!row || !row.unit) ? (u === 'SFT') : (row.unit === u); return `<option value="${u}" ${sel ? 'selected' : ''}>${u}</option>`; }).join('')}
                                     </select>
                                 </td>
                                 <td class="text-center">
@@ -1216,16 +1192,7 @@
                                 </td>
                                 <td class="text-center">
                                     <select class="unit-input w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-center text-sm">
-                                        <option value="CFT">CFT</option>
-                                        <option value="SFT" selected>SFT</option>
-                                        <option value="RFT">RFT</option>
-                                        <option value="CUM">CUM</option>
-                                        <option value="SQM">SQM</option>
-                                        <option value="RM">RM</option>
-                                        <option value="KG">KG</option>
-                                        <option value="JOB">JOB</option>
-                                        <option value="NOS">NOS</option>
-                                        <option value="BAG">BAG</option>
+                                        ${window.unitTypes.map(u => `<option value="${u}" ${u === 'SFT' ? 'selected' : ''}>${u}</option>`).join('')}
                                     </select>
                                 </td>
                                 <td class="text-center">
@@ -1379,16 +1346,7 @@
                     </td>
                     <td class="text-center">
                         <select class="unit-input w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-center text-sm">
-                            <option value="CFT">CFT</option>
-                            <option value="SFT" selected>SFT</option>
-                            <option value="RFT">RFT</option>
-                            <option value="CUM">CUM</option>
-                            <option value="SQM">SQM</option>
-                            <option value="RM">RM</option>
-                            <option value="KG">KG</option>
-                            <option value="JOB">JOB</option>
-                            <option value="NOS">NOS</option>
-                            <option value="BAG">BAG</option>
+                            ${window.unitTypes.map(u => `<option value="${u}" ${u === 'SFT' ? 'selected' : ''}>${u}</option>`).join('')}
                         </select>
                     </td>
                     <td class="text-center">

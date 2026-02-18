@@ -741,6 +741,13 @@ class FormController extends Controller
                 $sheetIndex++;
             }
 
+            // Set footer on all sheets
+            $footerText = excel_footer_text();
+            foreach ($spreadsheet->getAllSheets() as $sheet) {
+                $sheet->getHeaderFooter()->setOddFooter($footerText);
+                $sheet->getHeaderFooter()->setEvenFooter($footerText);
+            }
+
             // Create writer
             $writer = new Xlsx($spreadsheet);
 

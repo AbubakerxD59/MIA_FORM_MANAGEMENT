@@ -109,9 +109,14 @@ Route::middleware('auth')->group(function () {
 });
 
 Route::get('/clear', function () {
-    Artisan::call('config:clear');
-    Artisan::call('view:clear');
+    Artisan::call('optimize:clear');
     return "Cache cleared!";
+});
+
+Route::get('/fix-my-app', function () {
+    shell_exec('composer dump-autoload');
+    Artisan::call('optimize:clear');
+    return "Caches cleared and autoloader refreshed!";
 });
 
 require __DIR__ . '/auth.php';

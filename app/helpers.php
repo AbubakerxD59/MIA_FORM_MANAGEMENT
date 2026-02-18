@@ -1,0 +1,31 @@
+<?php
+
+use App\Enums\UnitType;
+
+if (! function_exists('unit_types')) {
+    /**
+     * Get all unit types for select dropdowns.
+     *
+     * @return array<string>
+     */
+    function unit_types(): array
+    {
+        return UnitType::values();
+    }
+}
+
+if (! function_exists('excel_footer_text')) {
+    /**
+     * Get the Excel footer text.
+     *
+     * @return string
+     */
+    function excel_footer_text(): string
+    {
+        $footerText = "&C&12&B MIA CONSTRUCTION\n";
+        $footerText .= "\n&C&10 Consultant - Designer - Estimator - Contractor\n";
+        $footerText .= "\n&C&10 59 - MAIN VIP EXT AECHS RAWALPINDI\n";
+        $footerText .= "&C&10 - 03218600259 -";
+        return $footerText;
+    }
+}

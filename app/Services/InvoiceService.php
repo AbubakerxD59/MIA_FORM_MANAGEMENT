@@ -653,10 +653,7 @@ class InvoiceService
         $sheet->getPageMargins()->setBottom(1.0);
         $sheet->getPageMargins()->setLeft(0.5);
 
-        $footerText = "&C&12____________________________________________________________________________________________________\n";
-        $footerText .= "&B MIA CONSTRUCTION\n";
-        $footerText .= "\n&C&10 Consultant - Designer - Estimator - Contractor\n";
-        $footerText .= "&C&10 - 03218600259 -";
+        $footerText = excel_footer_text();
         $sheet->getHeaderFooter()->setOddFooter($footerText);
         $sheet->getHeaderFooter()->setEvenFooter($footerText);
 

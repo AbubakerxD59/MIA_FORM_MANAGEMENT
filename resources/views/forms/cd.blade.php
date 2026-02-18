@@ -243,15 +243,33 @@
                                 </div>
                             </div>
                         </div>
-                        <!-- Total Income Section -->
-                        <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
-                            <div class="flex-1 max-w-md">
+                        <!-- Total Income and Total Balance Section -->
+                        <div class="border-t border-gray-200 dark:border-gray-700 pt-6 flex flex-wrap gap-6 items-end">
+                            <div class="flex-1 min-w-[200px] max-w-md">
                                 <label for="total_income"
                                     class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                     Total Income
                                 </label>
                                 <input type="number" id="total_income" name="income" step="0.01"
                                     min="0" value="{{ $totalIncome }}" placeholder="Total income" readonly
+                                    class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white cursor-not-allowed">
+                            </div>
+                            <div class="flex-1 min-w-[200px] max-w-md">
+                                <label for="total_expense"
+                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Total Expense
+                                </label>
+                                <input type="number" id="total_expense" step="0.01" readonly
+                                    placeholder="Total expense" value=""
+                                    class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white cursor-not-allowed">
+                            </div>
+                            <div class="flex-1 min-w-[200px] max-w-md">
+                                <label for="total_balance"
+                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Total Balance
+                                </label>
+                                <input type="number" id="total_balance" step="0.01" readonly
+                                    placeholder="Total balance" value=""
                                     class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white cursor-not-allowed">
                             </div>
                         </div>
@@ -606,6 +624,7 @@
                 });
             });
 
+            updateTotalBalance();
         });
 
         // Function to load head and make it active
@@ -741,6 +760,22 @@
 
             // Update the initial total income for calculations
             window.initialTotalIncome = newTotalIncome;
+
+            updateTotalBalance();
+        }
+
+        // Function to update Total Balance (Total Income - Total Expense from all debit amounts in summary table)
+        function updateTotalBalance() {
+            // Total Expense = sum of all debit values from the summary table
+            let totalExpense = 0;
+            $('.debit-input').each(function() {
+                const debitVal = $(this).val();
+                totalExpense += debitVal ? (Number(debitVal) || 0) : 0;
+            });
+            const totalIncome = parseFloat($('#total_income').val()) || 0;
+            const totalBalance = totalIncome - totalExpense;
+            $('#total_expense').val(totalExpense);
+            $('#total_balance').val(totalBalance);
         }
 
         // Function to get the base total for a row (previous row's total or total income for first row)
@@ -878,6 +913,8 @@
             if ($(this).hasClass('credit-input')) {
                 updateDisplayedTotalIncome();
             }
+
+            updateTotalBalance();
         });
 
         // Reset total to 0 when row fields are cleared and recalculate subsequent rows
@@ -1062,6 +1099,7 @@
                 // Update displayed total income to reflect current credits
                 updateDisplayedTotalIncome();
             @endif
+            updateTotalBalance();
         });
 
         // Function to submit CD summary form

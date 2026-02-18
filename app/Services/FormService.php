@@ -940,9 +940,7 @@ class FormService
         $sheet->getPageMargins()->setLeft(0.5);
 
         // Set page footer
-        $footerText = "&C&12&B MIA CONSTRUCTION\n";
-        $footerText .= "\n&C&10 Consultant - Designer - Estimator - Contractor\n";
-        $footerText .= "&C&10 - 03218600259 -";
+        $footerText = excel_footer_text();
         $sheet->getHeaderFooter()->setOddFooter($footerText);
         $sheet->getHeaderFooter()->setEvenFooter($footerText);
     }
@@ -1290,9 +1288,7 @@ class FormService
         $sheet->getPageMargins()->setLeft(0.5);
 
         // Set page footer
-        $footerText = "&C&12&B MIA CONSTRUCTION\n";
-        $footerText .= "\n&C&10 Consultant - Designer - Estimator - Contractor\n";
-        $footerText .= "&C&10 - 03218600259 -";
+        $footerText = excel_footer_text();
         $sheet->getHeaderFooter()->setOddFooter($footerText);
         $sheet->getHeaderFooter()->setEvenFooter($footerText);
     }
@@ -1517,9 +1513,7 @@ class FormService
         $sheet->getPageMargins()->setLeft(0.5);
 
         // Set page footer
-        $footerText = "&C&12&B MIA CONSTRUCTION\n";
-        $footerText .= "\n&C&10 Consultant - Designer - Estimator - Contractor\n";
-        $footerText .= "&C&10 - 03218600259 -";
+        $footerText = excel_footer_text();
         $sheet->getHeaderFooter()->setOddFooter($footerText);
         $sheet->getHeaderFooter()->setEvenFooter($footerText);
     }
