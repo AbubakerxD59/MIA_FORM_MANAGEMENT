@@ -31,7 +31,12 @@ class CdSummary extends Model
         'head_id',
         'cd_type',
         'amount',
+        'dated',
         'description',
+    ];
+
+    protected $casts = [
+        'dated' => 'date',
     ];
 
     /**

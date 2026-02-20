@@ -390,12 +390,13 @@
                                     </thead>
                                     <tbody id="cdSummaryTableBody"
                                         class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                                        <!-- 50 rows with input fields, populated with existing data if available -->
+                                        <!-- Default 50 rows; show all rows when existing data exceeds 50 -->
                                         @php
                                             $existingSummaries = $groupedSummaries ?? [];
                                             $summaryCount = count($existingSummaries);
+                                            $rowCount = max(50, $summaryCount);
                                         @endphp
-                                        @for ($i = 1; $i <= 50; $i++)
+                                        @for ($i = 1; $i <= $rowCount; $i++)
                                             @php
                                                 $summaryIndex = $i - 1;
                                                 $summary = isset($existingSummaries[$summaryIndex])
@@ -403,7 +404,7 @@
                                                     : null;
                                                 $snoValue = $summary ? $summary['head_name'] : '';
                                                 $datedValue = $summary
-                                                    ? $summary['created_at']->format('Y-m-d')
+                                                    ? $summary['dated'] ?? $summary['created_at']->format('Y-m-d')
                                                     : date('Y-m-d');
                                                 $descriptionValue = $summary ? $summary['description'] ?? '' : '';
                                                 $debitValue = $summary ? (int) $summary['debit'] : '';
@@ -1083,7 +1084,9 @@
 
             // Handle Add Row button click
             $('#addRowBtn').on('click', function() {
-                addNewRow();
+                for (let i = 0; i < 10; i++) {
+                    addNewRow();
+                }
             });
 
             // Handle form submission

@@ -531,6 +531,7 @@ class FormController extends Controller
                 'debit' => 0,
                 'credit' => 0,
                 'description' => $summary->description ?? '',
+                'dated' => $summary->dated?->format('Y-m-d'),
                 'created_at' => $summary->created_at,
             ];
 
@@ -613,6 +614,7 @@ class FormController extends Controller
                     'debit' => 0,
                     'credit' => 0,
                     'description' => $summary->description ?? '',
+                    'dated' => $summary->dated?->format('Y-m-d'),
                     'created_at' => $summary->created_at,
                 ];
 
@@ -1277,6 +1279,7 @@ class FormController extends Controller
             'summaries.*.head_name' => 'required|string',
             'summaries.*.cd_type' => 'required|in:credit,debit',
             'summaries.*.amount' => 'required|numeric|min:0',
+            'summaries.*.dated' => 'nullable|date',
             'summaries.*.description' => 'nullable|string',
         ]);
 
@@ -1318,6 +1321,7 @@ class FormController extends Controller
                     'head_id' => $head->id,
                     'cd_type' => $summary['cd_type'],
                     'amount' => $summary['amount'],
+                    'dated' => !empty($summary['dated']) ? $summary['dated'] : null,
                     'description' => $summary['description'] ?? null,
                 ]);
 
