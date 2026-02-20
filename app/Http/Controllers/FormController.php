@@ -512,7 +512,7 @@ class FormController extends Controller
         // Load existing summaries with head relationship
         $cdSummaries = CdSummary::where('form_id', $form->id)
             ->with('cdHead')
-            ->orderBy('created_at', 'asc')
+            ->orderBy('id', 'asc')
             ->get();
 
         // Group summaries by created_at (within 2 seconds) and head_id to combine debit/credit pairs
@@ -595,7 +595,7 @@ class FormController extends Controller
             // Load existing summaries with head relationship
             $cdSummaries = CdSummary::where('form_id', $form->id)
                 ->with('cdHead')
-                ->orderBy('created_at', 'asc')
+                ->orderBy('id', 'asc')
                 ->get();
 
             // Group summaries by created_at (within 2 seconds) and head_id to combine debit/credit pairs
