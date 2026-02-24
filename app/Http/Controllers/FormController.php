@@ -924,7 +924,7 @@ class FormController extends Controller
         $tableHeaderRow = $row;
         $sheet->setCellValue('A' . $tableHeaderRow, 'S. No');
         $sheet->setCellValue('B' . $tableHeaderRow, 'Account');
-        $sheet->setCellValue('C' . $tableHeaderRow, 'Total');
+        $sheet->setCellValue('G' . $tableHeaderRow, 'Total');
 
         // Style table header (same as Roznamcha)
         $tableHeaderStyle = [
@@ -944,10 +944,13 @@ class FormController extends Controller
                 ]
             ]
         ];
-        $sheet->getStyle('A' . $tableHeaderRow . ':C' . $tableHeaderRow)->applyFromArray($tableHeaderStyle);
+        $sheet->getStyle('A' . $tableHeaderRow . ':G' . $tableHeaderRow)->applyFromArray($tableHeaderStyle);
 
-        // Right align column C (Total) in header
-        $sheet->getStyle('C' . $tableHeaderRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+        // Right align column G (Total) in header
+        $sheet->getStyle('G' . $tableHeaderRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+
+        // Merge columns C to F in header row
+        $sheet->mergeCells('C' . $tableHeaderRow . ':F' . $tableHeaderRow);
 
         // Add summary data rows - only for heads with debit amounts
         $currentRow = $tableHeaderRow + 1;
@@ -965,8 +968,8 @@ class FormController extends Controller
             // Head name in column B
             $sheet->setCellValue('B' . $currentRow, $head->name);
 
-            // Sum of debit amount for this head in column C
-            $sheet->setCellValue('C' . $currentRow, number_format($headAmount, 0, '.', ','));
+            // Sum of debit amount for this head in column G
+            $sheet->setCellValue('G' . $currentRow, number_format($headAmount, 0, '.', ','));
 
             // Style table row (same as Roznamcha)
             $tableRowStyle = [
@@ -981,13 +984,16 @@ class FormController extends Controller
                     ]
                 ]
             ];
-            $sheet->getStyle('A' . $currentRow . ':C' . $currentRow)->applyFromArray($tableRowStyle);
+            $sheet->getStyle('A' . $currentRow . ':G' . $currentRow)->applyFromArray($tableRowStyle);
 
             // Center align S. No column
             $sheet->getStyle('A' . $currentRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
-            // Right align column C (amount)
-            $sheet->getStyle('C' . $currentRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+            // Right align column G (amount)
+            $sheet->getStyle('G' . $currentRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+
+            // Merge columns C to F in data row
+            $sheet->mergeCells('C' . $currentRow . ':F' . $currentRow);
 
             // Set row height for table rows
             $sheet->getRowDimension($currentRow)->setRowHeight(25);
@@ -999,7 +1005,7 @@ class FormController extends Controller
         // Add total row after all heads
         $sheet->setCellValue('A' . $currentRow, '');
         $sheet->setCellValue('B' . $currentRow, 'Total');
-        $sheet->setCellValue('C' . $currentRow, number_format($totalDebitAmount, 0, '.', ','));
+        $sheet->setCellValue('G' . $currentRow, number_format($totalDebitAmount, 0, '.', ','));
 
         // Style total row (same as table rows with borders)
         $totalRowStyle = [
@@ -1015,10 +1021,13 @@ class FormController extends Controller
                 ]
             ]
         ];
-        $sheet->getStyle('A' . $currentRow . ':C' . $currentRow)->applyFromArray($totalRowStyle);
+        $sheet->getStyle('A' . $currentRow . ':G' . $currentRow)->applyFromArray($totalRowStyle);
 
-        // Right align column C (total amount)
-        $sheet->getStyle('C' . $currentRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+        // Right align column G (total amount)
+        $sheet->getStyle('G' . $currentRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+
+        // Merge columns C to F in total row
+        $sheet->mergeCells('C' . $currentRow . ':F' . $currentRow);
 
         // Set row height for total row
         $sheet->getRowDimension($currentRow)->setRowHeight(25);
