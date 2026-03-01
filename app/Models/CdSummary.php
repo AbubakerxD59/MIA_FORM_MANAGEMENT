@@ -35,10 +35,6 @@ class CdSummary extends Model
         'description',
     ];
 
-    protected $casts = [
-        'dated' => 'date',
-    ];
-
     /**
      * The "booted" method of the model.
      */

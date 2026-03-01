@@ -531,7 +531,7 @@ class FormController extends Controller
                 'debit' => 0,
                 'credit' => 0,
                 'description' => $summary->description ?? '',
-                'dated' => $summary->dated?->format('Y-m-d'),
+                'dated' => !empty($summary->dated) ? date('Y-m-d', strtotime($summary->dated)) : date('Y-m-d', strtotime($summary->created_at)),
                 'created_at' => $summary->created_at,
             ];
 
@@ -614,7 +614,7 @@ class FormController extends Controller
                     'debit' => 0,
                     'credit' => 0,
                     'description' => $summary->description ?? '',
-                    'dated' => $summary->dated?->format('Y-m-d'),
+                    'dated' => !empty($summary->dated) ? date('Y-m-d', strtotime($summary->dated)) : date('Y-m-d', strtotime($summary->created_at)),
                     'created_at' => $summary->created_at,
                 ];
 
@@ -1110,7 +1110,7 @@ class FormController extends Controller
         foreach ($groupedSummaries as $summary) {
             $sheet->setCellValue('A' . $currentRow, $serialNumber);
             $sheet->setCellValue('B' . $currentRow, $summary['head_name']);
-            $sheet->setCellValue('C' . $currentRow, $summary['created_at']->format('Y-m-d'));
+            $sheet->setCellValue('C' . $currentRow, !empty($summary['dated']) ? date('Y-m-d', strtotime($summary['dated'])) : date('Y-m-d', strtotime($summary['created_at'])));
             $sheet->setCellValue('D' . $currentRow, $summary['description']);
             $sheet->setCellValue('E' . $currentRow, $summary['debit'] > 0 ? number_format($summary['debit'], 0, '.', ',') : '');
             $sheet->setCellValue('F' . $currentRow, $summary['credit'] > 0 ? number_format($summary['credit'], 0, '.', ',') : '');
@@ -1330,7 +1330,7 @@ class FormController extends Controller
                     'head_id' => $head->id,
                     'cd_type' => $summary['cd_type'],
                     'amount' => $summary['amount'],
-                    'dated' => !empty($summary['dated']) ? $summary['dated'] : null,
+                    'dated' => !empty($summary['dated']) ? date('Y-m-d', strtotime($summary['dated'])) : date('Y-m-d'),
                     'description' => $summary['description'] ?? null,
                 ]);
 
@@ -1356,7 +1356,7 @@ class FormController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to save summary: ' . $e->getMessage(),
+                'message' => 'Failed to save summary: ' . $e->getMessage() . ' ' . $e->getLine(),
             ], 500);
         }
     }

@@ -588,7 +588,7 @@ class FormService
                     'head_id' => $newHeadId,
                     'cd_type' => $oldSummary->cd_type,
                     'amount' => $oldSummary->amount,
-                    'dated' => $oldSummary->dated,
+                    'dated' => !empty($oldSummary->dated) ? date('Y-m-d', strtotime($oldSummary->dated)) : date('Y-m-d', strtotime($oldSummary->created_at)),
                     'description' => $oldSummary->description,
                 ]);
             }
