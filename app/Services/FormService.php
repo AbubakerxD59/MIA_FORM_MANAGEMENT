@@ -2,6 +2,10 @@
 
 namespace App\Services;
 
+use App\Models\CdHead;
+use App\Models\CdItem;
+use App\Models\CdLedger;
+use App\Models\CdSummary;
 use App\Models\Form;
 use App\Models\Field;
 use Illuminate\Support\Arr;
@@ -457,6 +461,9 @@ class FormService
                     ]);
                 }
 
+                // Duplicate CD heads, items, ledgers and summaries
+                $this->duplicateCdDataForForm($originalForm, $newForm);
+
                 $duplicatedCount++;
             }
 
@@ -513,6 +520,9 @@ class FormService
                     ]);
                 }
 
+                // Duplicate CD heads, items, ledgers and summaries
+                $this->duplicateCdDataForForm($originalForm, $newForm);
+
                 $duplicatedCount++;
             }
 
@@ -521,6 +531,67 @@ class FormService
         } catch (\Exception $e) {
             DB::rollBack();
             throw $e;
+        }
+    }
+
+    /**
+     * Duplicate CD heads, items, ledgers and summaries from one form to another.
+     */
+    private function duplicateCdDataForForm(Form $originalForm, Form $newForm): void
+    {
+        $userId = Auth::id();
+
+        // 1. Duplicate CD heads and build head_id mapping (old_id => new_head)
+        $headMapping = [];
+        $cdHeads = CdHead::where('form_id', $originalForm->id)->get();
+        foreach ($cdHeads as $oldHead) {
+            $newHead = CdHead::create([
+                'user_id' => $userId,
+                'form_id' => $newForm->id,
+                'name' => $oldHead->name,
+            ]);
+            $headMapping[$oldHead->id] = $newHead->id;
+        }
+
+        // 2. Duplicate CD ledger
+        $cdLedger = CdLedger::where('form_id', $originalForm->id)->first();
+        if ($cdLedger) {
+            CdLedger::create([
+                'user_id' => $userId,
+                'form_id' => $newForm->id,
+                'income' => $cdLedger->income,
+            ]);
+        }
+
+        // 3. Duplicate CD items (need to map head_id)
+        $cdItems = CdItem::where('form_id', $originalForm->id)->get();
+        foreach ($cdItems as $oldItem) {
+            $newHeadId = $headMapping[$oldItem->head_id] ?? null;
+            if ($newHeadId) {
+                CdItem::create([
+                    'user_id' => $userId,
+                    'form_id' => $newForm->id,
+                    'name' => $oldItem->name,
+                    'head_id' => $newHeadId,
+                ]);
+            }
+        }
+
+        // 4. Duplicate CD summaries (need to map head_id)
+        $cdSummaries = CdSummary::where('form_id', $originalForm->id)->get();
+        foreach ($cdSummaries as $oldSummary) {
+            $newHeadId = $headMapping[$oldSummary->head_id] ?? null;
+            if ($newHeadId) {
+                CdSummary::create([
+                    'user_id' => $userId,
+                    'form_id' => $newForm->id,
+                    'head_id' => $newHeadId,
+                    'cd_type' => $oldSummary->cd_type,
+                    'amount' => $oldSummary->amount,
+                    'dated' => $oldSummary->dated,
+                    'description' => $oldSummary->description,
+                ]);
+            }
         }
     }
 
@@ -1187,10 +1258,10 @@ class FormService
             if ($groupLastDataRow >= $groupFirstDataRow) {
                 // Calculate total amount for this group (sum of column F)
                 $totalFormula = '=SUM(F' . $groupFirstDataRow . ':F' . $groupLastDataRow . ')';
-                
+
                 // Merge cells A through E for "Total" label
                 $sheet->mergeCells('A' . $dataRow . ':E' . $dataRow);
-                
+
                 // Set total row
                 $sheet->setCellValue('A' . $dataRow, 'Total Amount');
                 $sheet->setCellValue('F' . $dataRow, $totalFormula);
@@ -1229,10 +1300,10 @@ class FormService
 
             // Add Grand Total row
             $grandTotalFormula = '=SUM(' . implode(',', $groupTotalRows) . ')';
-            
+
             // Merge cells A through E for "Grand Total Amount" label
             $sheet->mergeCells('A' . $dataRow . ':E' . $dataRow);
-            
+
             // Set grand total row
             $sheet->setCellValue('A' . $dataRow, 'Grand Total Amount');
             $sheet->setCellValue('F' . $dataRow, $grandTotalFormula);
@@ -1459,10 +1530,10 @@ class FormService
         if ($groupLastDataRow >= $groupFirstDataRow) {
             // Calculate total amount for this group (sum of column F)
             $totalFormula = '=SUM(F' . $groupFirstDataRow . ':F' . $groupLastDataRow . ')';
-            
+
             // Merge cells A through E for "Total" label
             $sheet->mergeCells('A' . $dataRow . ':E' . $dataRow);
-            
+
             // Set total row
             $sheet->setCellValue('A' . $dataRow, 'Total Amount');
             $sheet->setCellValue('F' . $dataRow, $totalFormula);
@@ -1572,7 +1643,7 @@ class FormService
             // Create group summary sheet
             $sanitizedGroupName = preg_replace('/[:\/\\?*\[\]]/', '-', $groupBy);
             $groupSummaryTitle = substr($sanitizedGroupName . ' - Summary', 0, 31);
-            
+
             $groupSummarySheet = new \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet($spreadsheet, $groupSummaryTitle);
             $spreadsheet->addSheet($groupSummarySheet, $sheetIndex);
             $groupSummarySheet->setTitle($groupSummaryTitle);
