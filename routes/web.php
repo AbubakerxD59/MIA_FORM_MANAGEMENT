@@ -119,4 +119,6 @@ Route::get('/fix-my-app', function () {
     return "Caches cleared and autoloader refreshed!";
 });
 
+require __DIR__ . '/fida.php';
+
 require __DIR__ . '/auth.php';
