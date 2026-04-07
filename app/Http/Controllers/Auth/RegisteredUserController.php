@@ -45,6 +45,10 @@ class RegisteredUserController extends Controller
 
         Auth::login($user);
 
-        return redirect(route('forms.index', absolute: false));
+        $home = is_fida_user()
+            ? route('fida.invoices.index', absolute: false)
+            : route('forms.index', absolute: false);
+
+        return redirect($home);
     }
 }

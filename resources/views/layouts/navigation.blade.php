@@ -12,9 +12,15 @@
 
                 <!-- Navigation Links -->
                 <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                    <x-nav-link :href="route('forms.index')" :active="request()->routeIs('forms.*')">
-                        {{ __('Forms') }}
-                    </x-nav-link>
+                    @unless (is_fida_user())
+                        <x-nav-link :href="route('forms.index')" :active="request()->routeIs('forms.*')">
+                            {{ __('Forms') }}
+                        </x-nav-link>
+                    @else
+                        <x-nav-link :href="route('fida.invoices.index')" :active="request()->routeIs('fida.invoices.*')">
+                            {{ __('Invoices') }}
+                        </x-nav-link>
+                    @endunless
                 </div>
             </div>
 
@@ -34,9 +40,15 @@
     <!-- Responsive Navigation Menu -->
     <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden">
         <div class="pt-2 pb-3 space-y-1">
-            <x-responsive-nav-link :href="route('forms.index')" :active="request()->routeIs('forms.*')">
-                {{ __('Forms') }}
-            </x-responsive-nav-link>
+            @unless (is_fida_user())
+                <x-responsive-nav-link :href="route('forms.index')" :active="request()->routeIs('forms.*')">
+                    {{ __('Forms') }}
+                </x-responsive-nav-link>
+            @else
+                <x-responsive-nav-link :href="route('fida.invoices.index')" :active="request()->routeIs('fida.invoices.*')">
+                    {{ __('Invoices') }}
+                </x-responsive-nav-link>
+            @endunless
         </div>
 
     </div>

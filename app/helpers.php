@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\UnitType;
+use App\Http\Middleware\FidaUser;
 
 if (! function_exists('unit_types')) {
     /**
@@ -11,6 +12,25 @@ if (! function_exists('unit_types')) {
     function unit_types(): array
     {
         return UnitType::values();
+    }
+}
+
+if (! function_exists('is_fida_user')) {
+    /**
+     * Whether the current user is the restricted FIDA account.
+     */
+    function is_fida_user(): bool
+    {
+        $user = auth()->user();
+
+        if (! $user) {
+            return false;
+        }
+
+        return hash_equals(
+            strtolower(FidaUser::ALLOWED_EMAIL),
+            strtolower((string) $user->email)
+        );
     }
 }
 

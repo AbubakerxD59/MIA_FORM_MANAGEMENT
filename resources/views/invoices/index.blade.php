@@ -208,17 +208,19 @@
             <div class="p-6">
                 <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-6">Navigation</h2>
                 <nav class="space-y-2">
-                    <a href="{{ route('forms.index') }}"
-                        class="flex items-center px-4 py-3 text-gray-900 dark:text-white rounded-lg transition-colors duration-200 {{ request()->routeIs('forms.*') ? 'bg-blue-600 text-white shadow-md' : 'hover:bg-gray-100 dark:hover:bg-gray-700' }}">
-                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
-                            </path>
-                        </svg>
-                        <span class="font-medium">Forms</span>
-                    </a>
-                    <a href="{{ route('invoices.index') }}"
-                        class="flex items-center px-4 py-3 text-gray-900 dark:text-white rounded-lg transition-colors duration-200 {{ request()->routeIs('invoices.*') ? 'bg-blue-600 text-white shadow-md' : 'hover:bg-gray-100 dark:hover:bg-gray-700' }}">
+                    @unless (is_fida_user())
+                        <a href="{{ route('forms.index') }}"
+                            class="flex items-center px-4 py-3 text-gray-900 dark:text-white rounded-lg transition-colors duration-200 {{ request()->routeIs('forms.*') ? 'bg-blue-600 text-white shadow-md' : 'hover:bg-gray-100 dark:hover:bg-gray-700' }}">
+                            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                                </path>
+                            </svg>
+                            <span class="font-medium">Forms</span>
+                        </a>
+                    @endunless
+                    <a href="{{ is_fida_user() ? route('fida.invoices.index') : route('invoices.index') }}"
+                        class="flex items-center px-4 py-3 text-gray-900 dark:text-white rounded-lg transition-colors duration-200 {{ is_fida_user() ? (request()->routeIs('fida.invoices.*') ? 'bg-blue-600 text-white shadow-md' : 'hover:bg-gray-100 dark:hover:bg-gray-700') : (request()->routeIs('invoices.*') ? 'bg-blue-600 text-white shadow-md' : 'hover:bg-gray-100 dark:hover:bg-gray-700') }}">
                         <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2zM10 8.5a.5.5 0 11-1 0 .5.5 0 011 0zm5 5a.5.5 0 11-1 0 .5.5 0 011 0z">
@@ -393,6 +395,11 @@
     <script>
         let invoicesTable;
 
+        const isFidaUser = @json(is_fida_user());
+        const invoiceResourceBase = isFidaUser ? '/fida/invoices' : '/invoices';
+        const invoicesIndexUrl = isFidaUser ? @json(route('fida.invoices.index')) : @json(route('invoices.index'));
+        const invoicesStoreUrl = isFidaUser ? @json(route('fida.invoices.store')) : @json(route('invoices.store'));
+
         $(document).ready(function() {
             // Setup CSRF token for AJAX requests
             $.ajaxSetup({
@@ -415,7 +422,7 @@
                 };
 
                 $.ajax({
-                    url: '{{ route('invoices.store') }}',
+                    url: invoicesStoreUrl,
                     method: 'POST',
                     data: formData,
                     headers: {
@@ -482,7 +489,7 @@
                 serverSide: true,
                 responsive: true,
                 ajax: {
-                    url: "{{ route('invoices.index') }}",
+                    url: invoicesIndexUrl,
                     type: 'GET',
                 },
                 columns: [{
@@ -534,7 +541,7 @@
                                     <div id="${rowId}" 
                                          class="hidden absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 z-50">
                                         <div class="py-1" role="menu">
-                                            <a href="/invoices/${row.id}/edit" 
+                                            <a href="${invoiceResourceBase}/${row.id}/edit" 
                                                onclick="closeActionMenu('${rowId}')"
                                                class="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700" role="menuitem">
                                                 <svg class="w-4 h-4 mr-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -542,7 +549,18 @@
                                                 </svg>
                                                 Edit
                                             </a>
-                                            <a href="/invoices/${row.id}/export" 
+                                            ${isFidaUser ? `
+                                            <a href="${invoiceResourceBase}/${row.id}/quotation" target="_blank" rel="noopener noreferrer"
+                                               onclick="closeActionMenu('${rowId}')"
+                                               class="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700" role="menuitem">
+                                                <svg class="w-4 h-4 mr-3 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                                </svg>
+                                                Preview quotation
+                                            </a>
+                                            ` : ''}
+                                            <a href="${invoiceResourceBase}/${row.id}/export" 
                                                onclick="closeActionMenu('${rowId}')"
                                                class="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700" role="menuitem">
                                                 <svg class="w-4 h-4 mr-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -624,7 +642,7 @@
             // Delete confirmation function
             window.confirmDelete = function(id) {
                 const form = document.getElementById('deleteForm');
-                form.action = `/invoices/${id}`;
+                form.action = `${invoiceResourceBase}/${id}`;
                 document.getElementById('deleteModalMessage').textContent =
                     'Are you sure you want to delete this invoice? This action cannot be undone.';
                 const modal = document.getElementById('deleteModal');

@@ -9,12 +9,20 @@ use App\Http\Controllers\ProfileController;
 
 Route::get('/', function () {
     if (Auth::check()) {
+        if (is_fida_user()) {
+            return redirect()->route('fida.invoices.index');
+        }
+
         return redirect()->route('forms.index');
     }
     return redirect()->route('login');
 });
 
 Route::get('/dashboard', function () {
+    if (is_fida_user()) {
+        return redirect()->route('fida.invoices.index');
+    }
+
     return redirect()->route('forms.index');
 })->middleware(['auth', 'verified'])->name('dashboard');
 

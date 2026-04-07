@@ -28,7 +28,11 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('forms.index', absolute: false));
+        $default = is_fida_user()
+            ? route('fida.invoices.index', absolute: false)
+            : route('forms.index', absolute: false);
+
+        return redirect()->intended($default);
     }
 
     /**

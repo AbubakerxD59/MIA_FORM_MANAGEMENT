@@ -166,7 +166,7 @@ class InvoiceController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'unit' => 'nullable|string|max:255',
-            'rate' => 'nullable|integer|min:0',
+            'rate' => 'nullable|min:0',
         ]);
 
         try {
@@ -320,8 +320,8 @@ class InvoiceController extends Controller
             'summaries.*.description' => 'nullable|string',
             'summaries.*.unit' => 'nullable|string|max:255',
             'summaries.*.quantity' => 'nullable|integer|min:0',
-            'summaries.*.rate' => 'nullable|integer|min:0',
-            'summaries.*.amount' => 'nullable|integer|min:0',
+            'summaries.*.rate' => 'nullable|min:0',
+            'summaries.*.amount' => 'nullable|min:0',
             'summaries.*.remarks' => 'nullable|string',
         ]);
 
@@ -393,7 +393,7 @@ class InvoiceController extends Controller
     }
 
     /**
-     * Export invoice as Excel.
+     * Export invoice as Excel (standard layout).
      */
     public function export(Invoice $invoice): StreamedResponse|\Illuminate\Http\RedirectResponse
     {
@@ -405,13 +405,11 @@ class InvoiceController extends Controller
                     ->with('error', 'No invoice data to export.');
             }
 
-            // Create writer
             $writer = new Xlsx($spreadsheet);
 
-            // Generate filename
-            $filename = str_replace(' ', '_', $invoice->client_name) . '_' . str_replace(' ', '_', $invoice->project_name) . '_' . date('Y-m-d') . '.xlsx';
+            $filename = str_replace(' ', '_', $invoice->client_name).'_'.str_replace(' ', '_', $invoice->project_name)
+                .'_'.date('Y-m-d').'.xlsx';
 
-            // Return as download
             return new StreamedResponse(
                 function () use ($writer) {
                     $writer->save('php://output');
@@ -419,13 +417,63 @@ class InvoiceController extends Controller
                 200,
                 [
                     'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                    'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+                    'Content-Disposition' => 'attachment; filename="'.$filename.'"',
                     'Cache-Control' => 'max-age=0',
                 ]
             );
         } catch (\Exception $e) {
             return redirect()->route('invoices.index')
-                ->with('error', 'Failed to export invoice: ' . $e->getMessage());
+                ->with('error', 'Failed to export invoice: '.$e->getMessage());
+        }
+    }
+
+    /**
+     * Export invoice as Excel (FIDA quotation layout only).
+     */
+    /**
+     * Printable / on-screen quotation (FIDA layout); same content as Excel export.
+     */
+    public function quotationFida(Invoice $invoice): View|\Illuminate\Http\RedirectResponse
+    {
+        $blocks = $this->invoiceService->getFidaQuotationBlocks($invoice);
+
+        if ($blocks === []) {
+            return redirect()->route('fida.invoices.index')
+                ->with('error', 'No quotation data to preview. Add invoice items with line items first.');
+        }
+
+        return view('fida.invoices.quotation', compact('invoice', 'blocks'));
+    }
+
+    public function exportFida(Invoice $invoice): StreamedResponse|\Illuminate\Http\RedirectResponse
+    {
+        try {
+            $spreadsheet = $this->invoiceService->exportInvoiceFida($invoice);
+
+            if ($spreadsheet->getSheetCount() === 0) {
+                return redirect()->route('fida.invoices.index')
+                    ->with('error', 'No invoice data to export.');
+            }
+
+            $writer = new Xlsx($spreadsheet);
+
+            $filename = str_replace(' ', '_', $invoice->client_name).'_'.str_replace(' ', '_', $invoice->project_name)
+                .'_Quotation_'.date('Y-m-d').'.xlsx';
+
+            return new StreamedResponse(
+                function () use ($writer) {
+                    $writer->save('php://output');
+                },
+                200,
+                [
+                    'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+                    'Cache-Control' => 'max-age=0',
+                ]
+            );
+        } catch (\Exception $e) {
+            return redirect()->route('fida.invoices.index')
+                ->with('error', 'Failed to export invoice: '.$e->getMessage());
         }
     }
 }
