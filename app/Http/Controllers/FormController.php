@@ -735,7 +735,7 @@ class FormController extends Controller
                 $spreadsheet->addSheet($headSheet, $sheetIndex);
 
                 // Add header to head sheet
-                $this->addCdExportHeader($headSheet, $form, $totalIncome, $totalExpense, $inHand);
+                $this->addCdExportHeader($headSheet, $form, $totalIncome, $totalExpense, $inHand, (float) $headAmount);
 
                 // Add table to head sheet (filtered for this head)
                 $this->addRoznamchaTable($headSheet, $headGroupedSummaries);
@@ -779,7 +779,7 @@ class FormController extends Controller
     /**
      * Add header section to CD export sheet.
      */
-    private function addCdExportHeader($sheet, $form, $totalIncome, $totalExpense, $inHand): int
+    private function addCdExportHeader($sheet, $form, $totalIncome, $totalExpense, $inHand, ?float $itemSheetDebitTotal = null): int
     {
         // Find logo path
         $logoPath = $this->formService->findLogoPath();
@@ -839,6 +839,11 @@ class FormController extends Controller
         $sheet->setCellValue('F' . $row, 'INHAND');
         $sheet->setCellValue('G' . $row, number_format($inHand, 0, '.', ','));
 
+        if ($itemSheetDebitTotal !== null) {
+            $sheet->setCellValue('D3', 'Total');
+            $sheet->setCellValue('E3', number_format($itemSheetDebitTotal, 0, '.', ','));
+        }
+
         // Style header rows
         $headerLabelStyle = [
             'font' => ['bold' => true, 'size' => 12, 'color' => ['rgb' => '000000']],
@@ -876,6 +881,12 @@ class FormController extends Controller
         // Style right side header (CLIENT, LOCATION, STARTING)
         $sheet->getStyle('F1:F3')->applyFromArray($headerLabelStyle);
         $sheet->getStyle('G1:G3')->applyFromArray($headerValueStyle);
+
+        if ($itemSheetDebitTotal !== null) {
+            $sheet->getStyle('D3')->applyFromArray($financialLabelStyle);
+            $sheet->getStyle('E3')->applyFromArray($financialValueStyle);
+            $sheet->getStyle('E3')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+        }
 
         // Set column widths
         $sheet->getColumnDimension('B')->setWidth(15);

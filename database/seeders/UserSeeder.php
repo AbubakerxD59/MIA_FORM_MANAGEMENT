@@ -34,9 +34,9 @@ class UserSeeder extends Seeder
             ]
         );
 
-        // Create second user: hfia6232@gmail.com
+        // Create second user: hfida6232@gmail.com
         User::updateOrCreate(
-            ['email' => 'hfia6232@gmail.com'],
+            ['email' => 'hfida6232@gmail.com'],
             [
                 'name' => 'Fida Hussain',
                 'password' => Hash::make('hfida_password6232'),

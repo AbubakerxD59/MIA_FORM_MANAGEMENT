@@ -8,7 +8,7 @@ use App\Http\Controllers\InvoiceController;
 | FIDA routes
 |--------------------------------------------------------------------------
 |
-| Only the user with email hfia6232@gmail.com may access these routes
+| Only the user with email hfida6232@gmail.com may access these routes
 | (see App\Http\Middleware\FidaUser).
 |
 | Invoice routes mirror routes/web.php but under the `fida/` prefix and

@@ -8,7 +8,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class FidaUser
 {
-    public const ALLOWED_EMAIL = 'hfia6232@gmail.com';
+    public const ALLOWED_EMAIL = 'hfida6232@gmail.com';
 
     /**
      * Restrict route access to the allowed FIDA user email.
