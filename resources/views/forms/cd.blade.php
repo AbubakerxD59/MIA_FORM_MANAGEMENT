@@ -366,15 +366,19 @@
                                                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                                                 DATED
                                             </th>
-                                            <th scope="col" style="width: 40%;"
+                                            <th scope="col" style="width: 25%;"
                                                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                                                 DESCRIPTION
                                             </th>
-                                            <th scope="col" style="width: 15%;"
+                                            <th scope="col" style="width: 20%;"
+                                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                                NOTE
+                                            </th>
+                                            <th scope="col" style="width: 12%;"
                                                 class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                                                 DEB
                                             </th>
-                                            <th scope="col" style="width: 15%;"
+                                            <th scope="col" style="width: 12%;"
                                                 class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                                                 CRD
                                             </th>
@@ -407,6 +411,7 @@
                                                     ? $summary['dated'] ?? $summary['created_at']->format('Y-m-d')
                                                     : date('Y-m-d');
                                                 $descriptionValue = $summary ? $summary['description'] ?? '' : '';
+                                                $noteValue = $summary ? $summary['note'] ?? '' : '';
                                                 $debitValue = $summary ? (int) $summary['debit'] : '';
                                                 $creditValue = $summary ? (int) $summary['credit'] : '';
                                             @endphp
@@ -424,19 +429,25 @@
                                                     <input type="date" name="dated[]" value="{{ $datedValue }}"
                                                         class="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
                                                 </td>
-                                                <td class="px-6 py-2" style="width: 40%;">
+                                                <td class="px-6 py-2" style="width: 25%;">
                                                     <input type="text" name="description[]"
                                                         value="{{ $descriptionValue }}"
                                                         placeholder="Enter description"
                                                         class="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
                                                 </td>
-                                                <td class="px-6 py-2 whitespace-nowrap" style="width: 15%;">
+                                                <td class="px-6 py-2" style="width: 20%;">
+                                                    <input type="text" name="note[]"
+                                                        value="{{ $noteValue }}"
+                                                        placeholder="Enter note"
+                                                        class="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
+                                                </td>
+                                                <td class="px-6 py-2 whitespace-nowrap" style="width: 12%;">
                                                     <input type="number" name="debit[]" step="1"
                                                         min="0" placeholder="0" value="{{ $debitValue }}"
                                                         class="w-full px-2 py-1 text-sm text-right border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white debit-input"
                                                         onkeypress="return event.charCode >= 48 && event.charCode <= 57">
                                                 </td>
-                                                <td class="px-6 py-2 whitespace-nowrap" style="width: 15%;">
+                                                <td class="px-6 py-2 whitespace-nowrap" style="width: 12%;">
                                                     <input type="number" name="credit[]" step="1"
                                                         min="0" placeholder="0" value="{{ $creditValue }}"
                                                         class="w-full px-2 py-1 text-sm text-right border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white credit-input"
@@ -815,9 +826,11 @@
                     const prevDated = prevDatedVal ? prevDatedVal.trim() : '';
                     const prevDescriptionVal = prevRow.find('input[name="description[]"]').val();
                     const prevDescription = prevDescriptionVal ? prevDescriptionVal.trim() : '';
+                    const prevNoteVal = prevRow.find('input[name="note[]"]').val();
+                    const prevNote = prevNoteVal ? prevNoteVal.trim() : '';
 
                     if (prevDebit === 0 && prevCredit === 0 && prevSno === '' && prevDated === '' && prevDescription ===
-                        '') {
+                        '' && prevNote === '') {
                         // Previous row is empty, use total income
                         return currentTotalIncome;
                     }
@@ -919,7 +932,7 @@
         });
 
         // Reset total to 0 when row fields are cleared and recalculate subsequent rows
-        $(document).on('input', 'input[name="sno[]"], input[name="dated[]"], input[name="description[]"]', function() {
+        $(document).on('input', 'input[name="sno[]"], input[name="dated[]"], input[name="description[]"], input[name="note[]"]', function() {
             const row = $(this).closest('tr');
             const rowIndex = parseInt(row.data('row-index')) || 1;
         });
@@ -989,18 +1002,23 @@
                         <input type="date" name="dated[]" value="${currentDate}"
                             class="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
                     </td>
-                    <td class="px-6 py-2" style="width: 40%;">
+                    <td class="px-6 py-2" style="width: 25%;">
                         <input type="text" name="description[]" value=""
                             placeholder="Enter description"
                             class="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
                     </td>
-                    <td class="px-6 py-2 whitespace-nowrap" style="width: 15%;">
+                    <td class="px-6 py-2" style="width: 20%;">
+                        <input type="text" name="note[]" value=""
+                            placeholder="Enter note"
+                            class="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
+                    </td>
+                    <td class="px-6 py-2 whitespace-nowrap" style="width: 12%;">
                         <input type="number" name="debit[]" step="1"
                             min="0" placeholder="0" value=""
                             class="w-full px-2 py-1 text-sm text-right border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white debit-input"
                             onkeypress="return event.charCode >= 48 && event.charCode <= 57">
                     </td>
-                    <td class="px-6 py-2 whitespace-nowrap" style="width: 15%;">
+                    <td class="px-6 py-2 whitespace-nowrap" style="width: 12%;">
                         <input type="number" name="credit[]" step="1"
                             min="0" placeholder="0" value=""
                             class="w-full px-2 py-1 text-sm text-right border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white credit-input"
@@ -1118,19 +1136,21 @@
                 const headName = row.find('input[name="sno[]"]').val().trim();
                 const dated = row.find('input[name="dated[]"]').val();
                 const description = row.find('input[name="description[]"]').val().trim();
+                const note = row.find('input[name="note[]"]').val().trim();
                 const debitVal = row.find('input[name="debit[]"]').val();
                 const creditVal = row.find('input[name="credit[]"]').val();
                 const debit = debitVal ? Number(debitVal) || 0 : 0;
                 const credit = creditVal ? Number(creditVal) || 0 : 0;
 
                 // Only include rows with at least one field filled
-                if (headName || dated || description || debit > 0 || credit > 0) {
+                if (headName || dated || description || note || debit > 0 || credit > 0) {
                     // If debit has value, add debit entry
                     if (debit > 0) {
                         summaries.push({
                             head_name: headName,
                             dated: dated || null,
                             description: description || null,
+                            note: note || null,
                             cd_type: 'debit',
                             amount: debit
                         });
@@ -1142,6 +1162,7 @@
                             head_name: headName,
                             dated: dated || null,
                             description: description || null,
+                            note: note || null,
                             cd_type: 'credit',
                             amount: credit
                         });

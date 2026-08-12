@@ -33,6 +33,7 @@ class CdSummary extends Model
         'amount',
         'dated',
         'description',
+        'note',
     ];
 
     /**

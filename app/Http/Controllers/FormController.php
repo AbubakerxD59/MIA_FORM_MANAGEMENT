@@ -531,6 +531,7 @@ class FormController extends Controller
                 'debit' => 0,
                 'credit' => 0,
                 'description' => $summary->description ?? '',
+                'note' => $summary->note ?? '',
                 'dated' => !empty($summary->dated) ? date('Y-m-d', strtotime($summary->dated)) : date('Y-m-d', strtotime($summary->created_at)),
                 'created_at' => $summary->created_at,
             ];
@@ -565,6 +566,10 @@ class FormController extends Controller
                     // Use description from either entry (prefer non-empty one)
                     if (empty($group['description']) && !empty($otherSummary->description)) {
                         $group['description'] = $otherSummary->description;
+                    }
+                    // Use note from either entry (prefer non-empty one)
+                    if (empty($group['note']) && !empty($otherSummary->note)) {
+                        $group['note'] = $otherSummary->note;
                     }
                     $processedIds[] = $otherSummary->id;
                     break; // Only combine one pair
@@ -614,6 +619,7 @@ class FormController extends Controller
                     'debit' => 0,
                     'credit' => 0,
                     'description' => $summary->description ?? '',
+                    'note' => $summary->note ?? '',
                     'dated' => !empty($summary->dated) ? date('Y-m-d', strtotime($summary->dated)) : date('Y-m-d', strtotime($summary->created_at)),
                     'created_at' => $summary->created_at,
                 ];
@@ -648,6 +654,10 @@ class FormController extends Controller
                         // Use description from either entry (prefer non-empty one)
                         if (empty($group['description']) && !empty($otherSummary->description)) {
                             $group['description'] = $otherSummary->description;
+                        }
+                        // Use note from either entry (prefer non-empty one)
+                        if (empty($group['note']) && !empty($otherSummary->note)) {
+                            $group['note'] = $otherSummary->note;
                         }
                         $processedIds[] = $otherSummary->id;
                         break; // Only combine one pair
@@ -1079,9 +1089,10 @@ class FormController extends Controller
         $sheet->setCellValue('B' . $tableHeaderRow, 'Account');
         $sheet->setCellValue('C' . $tableHeaderRow, 'DATED');
         $sheet->setCellValue('D' . $tableHeaderRow, 'DESCRIPTION');
-        $sheet->setCellValue('E' . $tableHeaderRow, 'DEB');
-        $sheet->setCellValue('F' . $tableHeaderRow, 'CRD');
-        $sheet->setCellValue('G' . $tableHeaderRow, 'TOTAL');
+        $sheet->setCellValue('E' . $tableHeaderRow, 'NOTE');
+        $sheet->setCellValue('F' . $tableHeaderRow, 'DEB');
+        $sheet->setCellValue('G' . $tableHeaderRow, 'CRD');
+        $sheet->setCellValue('H' . $tableHeaderRow, 'TOTAL');
 
         // Style table header
         $tableHeaderStyle = [
@@ -1101,16 +1112,17 @@ class FormController extends Controller
                 ]
             ]
         ];
-        $sheet->getStyle('A' . $tableHeaderRow . ':G' . $tableHeaderRow)->applyFromArray($tableHeaderStyle);
+        $sheet->getStyle('A' . $tableHeaderRow . ':H' . $tableHeaderRow)->applyFromArray($tableHeaderStyle);
 
         // Set column widths for table
         $sheet->getColumnDimension('A')->setWidth(10);
         $sheet->getColumnDimension('B')->setWidth(20);
         $sheet->getColumnDimension('C')->setWidth(12);
         $sheet->getColumnDimension('D')->setWidth(40);
-        $sheet->getColumnDimension('E')->setWidth(12);
+        $sheet->getColumnDimension('E')->setWidth(30);
         $sheet->getColumnDimension('F')->setWidth(12);
         $sheet->getColumnDimension('G')->setWidth(12);
+        $sheet->getColumnDimension('H')->setWidth(12);
 
         // Table Data
         $currentRow = $tableHeaderRow + 1;
@@ -1123,8 +1135,9 @@ class FormController extends Controller
             $sheet->setCellValue('B' . $currentRow, $summary['head_name']);
             $sheet->setCellValue('C' . $currentRow, !empty($summary['dated']) ? date('Y-m-d', strtotime($summary['dated'])) : date('Y-m-d', strtotime($summary['created_at'])));
             $sheet->setCellValue('D' . $currentRow, $summary['description']);
-            $sheet->setCellValue('E' . $currentRow, $summary['debit'] > 0 ? number_format($summary['debit'], 0, '.', ',') : '');
-            $sheet->setCellValue('F' . $currentRow, $summary['credit'] > 0 ? number_format($summary['credit'], 0, '.', ',') : '');
+            $sheet->setCellValue('E' . $currentRow, $summary['note'] ?? '');
+            $sheet->setCellValue('F' . $currentRow, $summary['debit'] > 0 ? number_format($summary['debit'], 0, '.', ',') : '');
+            $sheet->setCellValue('G' . $currentRow, $summary['credit'] > 0 ? number_format($summary['credit'], 0, '.', ',') : '');
 
             // Calculate running total using the same logic as JavaScript
             $debit = $summary['debit'] ?? 0;
@@ -1151,7 +1164,7 @@ class FormController extends Controller
                 }
             }
 
-            $sheet->setCellValue('G' . $currentRow, number_format($runningTotal, 0, '.', ','));
+            $sheet->setCellValue('H' . $currentRow, number_format($runningTotal, 0, '.', ','));
 
             // Style table row
             $tableRowStyle = [
@@ -1166,13 +1179,13 @@ class FormController extends Controller
                     ]
                 ]
             ];
-            $sheet->getStyle('A' . $currentRow . ':G' . $currentRow)->applyFromArray($tableRowStyle);
+            $sheet->getStyle('A' . $currentRow . ':H' . $currentRow)->applyFromArray($tableRowStyle);
 
             // Center align S. No column
             $sheet->getStyle('A' . $currentRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
             // Right align numeric columns
-            $sheet->getStyle('E' . $currentRow . ':G' . $currentRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+            $sheet->getStyle('F' . $currentRow . ':H' . $currentRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
 
             // Set row height for table rows
             $sheet->getRowDimension($currentRow)->setRowHeight(25);
@@ -1301,6 +1314,7 @@ class FormController extends Controller
             'summaries.*.amount' => 'required|numeric|min:0',
             'summaries.*.dated' => 'nullable|date',
             'summaries.*.description' => 'nullable|string',
+            'summaries.*.note' => 'nullable|string',
         ]);
 
         try {
@@ -1343,6 +1357,7 @@ class FormController extends Controller
                     'amount' => $summary['amount'],
                     'dated' => !empty($summary['dated']) ? date('Y-m-d', strtotime($summary['dated'])) : date('Y-m-d'),
                     'description' => $summary['description'] ?? null,
+                    'note' => $summary['note'] ?? null,
                 ]);
 
                 $created[] = [

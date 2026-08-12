@@ -590,6 +590,7 @@ class FormService
                     'amount' => $oldSummary->amount,
                     'dated' => !empty($oldSummary->dated) ? date('Y-m-d', strtotime($oldSummary->dated)) : date('Y-m-d', strtotime($oldSummary->created_at)),
                     'description' => $oldSummary->description,
+                    'note' => $oldSummary->note,
                 ]);
             }
         }
